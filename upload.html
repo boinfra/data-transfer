@@ -12,24 +12,51 @@
 <body>
     <!-- Include of the navbar -->
     <script src="http://www.w3schools.com/lib/w3data.js"></script>
-    <div w3-include-html="nav.html"></div>
-
-    <script>
-        w3IncludeHTML();
-    </script>
+    <div w3-include-html="header.html"></div>
 
     <!-- Body content -->
     <div class="container body-content">
         <h1>Upload</h1>
+        <hr/>
+        <!-- drop zone -->
         <div class="droppingZone">
             <div class="droppingZoneContent">
                 <i class="fa fa-file-o fa-3x"></i><i class="fa fa-plus-circle"></i><br/>
-                Drag n' drop files or folders here.
+                <p>Drag n' drop files or folders here.</p>
             </div>
+        </div>
+        <br/>
+        
+        <!-- Files tranfsferts view -->
+        <div>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th><i class="fa fa-square-o"></i></th>
+                        <th>Name</th>
+                        <th>Size</th>
+                        <th>Transfert type</th>
+                        <th>Status</th>
+                        <th>Speed</th>
+                        <th>Elapsed time</th>
+                        <th>Remaining time</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                </tbody>
+            </table>
         </div>
     </div>
 
+    <!-- Include of the footer -->
+    <div w3-include-html="footer.html"></div>
+
     <!-- Scripts -->
+    <script>
+        w3IncludeHTML();
+    </script>
     <script src="librairies/angularJS/angular.min.js"></script>
 </body>
 
