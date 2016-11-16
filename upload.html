@@ -6,13 +6,15 @@
     <meta charset="UTF-8" />
     <link rel="stylesheet" href="librairies/bootstrap/css/bootstrap.css" />
     <link rel="stylesheet" href="librairies/FontAwesome/css/font-awesome.css" />
-    <link rel="stylesheet" href="droppingZone.css" />
+    <link rel="stylesheet" href="css/droppingZone.css" />
 </head>
 
 <body>
     <!-- Include of the navbar -->
     <script src="http://www.w3schools.com/lib/w3data.js"></script>
-    <div w3-include-html="header.html"></div>
+    <script src="librairies/jQuery/jquery-3.1.1.js"></script>
+    <script src="librairies/Angular/angular.min.js"></script>
+    <div w3-include-html="html snippets/header.html"></div>
 
     <!-- Body content -->
     <div class="container body-content">
@@ -29,7 +31,7 @@
         
         <!-- Files tranfsferts view -->
         <div>
-            <table class="table table-bordered">
+            <table class="table" style="border: solid">
                 <thead>
                     <tr>
                         <th><i class="fa fa-square-o"></i></th>
@@ -44,20 +46,20 @@
                     </tr>
                 </thead>
                 <tbody>
-                    
+
                 </tbody>
             </table>
         </div>
     </div>
 
     <!-- Include of the footer -->
-    <div w3-include-html="footer.html"></div>
+    <div w3-include-html="html snippets/footer.html"></div>
 
     <!-- Scripts -->
     <script>
         w3IncludeHTML();
     </script>
-    <script src="librairies/angularJS/angular.min.js"></script>
+    <script src="librairies/Angular/angular.min.js"></script>
 </body>
 
 </html>
