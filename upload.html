@@ -6,9 +6,11 @@
     <meta charset="UTF-8" />
     <link rel="stylesheet" href="librairies/bootstrap/css/bootstrap.css" />
     <link rel="stylesheet" href="librairies/FontAwesome/css/font-awesome.css" />
+    <link rel="stylesheet" href="droppingZone.css" />
 </head>
 
 <body>
+    <!-- Include of the navbar -->
     <script src="http://www.w3schools.com/lib/w3data.js"></script>
     <div w3-include-html="nav.html"></div>
 
@@ -16,10 +18,18 @@
         w3IncludeHTML();
     </script>
 
+    <!-- Body content -->
     <div class="container body-content">
         <h1>Upload</h1>
+        <div class="droppingZone">
+            <div class="droppingZoneContent">
+                <i class="fa fa-file-o fa-3x"></i><i class="fa fa-plus-circle"></i><br/>
+                Drag n' drop files or folders here.
+            </div>
+        </div>
     </div>
 
+    <!-- Scripts -->
     <script src="librairies/angularJS/angular.min.js"></script>
 </body>
 
