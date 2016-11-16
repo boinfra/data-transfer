@@ -1,0 +1,12 @@
+.fileTransfertsView {
+	border: solid; 
+	position: fixed; 
+	bottom: 0; 
+	width: 100%; 
+	background-color:#ffffff;
+}
+
+.fileTransfertsViewHeader {
+	border-bottom: solid; 
+	background-color: #f0f0f0;
+}

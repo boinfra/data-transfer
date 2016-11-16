@@ -1,5 +1,4 @@
-.droppingZone
-{
+.droppingZone {
 	border-style: dashed;
 	border-radius: 15px;
 	width: 100%;
@@ -9,8 +8,7 @@
 	background-color: #f0f0f0;
 }
 
-.droppingZoneContent
-{
+.droppingZoneContent {
 	vertical-align: middle;
 	display: table-cell;
 }
