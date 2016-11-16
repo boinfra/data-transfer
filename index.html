@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="librairies/FontAwesome/css/font-awesome.css" />
 </head>
 
-<body>
+<body id="body" onload="defineBodyPadding()">
     <!-- Include of the navbar -->
     <script src="http://www.w3schools.com/lib/w3data.js"></script>
     <script src="librairies/jQuery/jquery-3.1.1.js"></script>
@@ -19,109 +19,55 @@
     <div class="container body-content">
         <h1>Home</h1>
         <hr/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
     </div>
 
+    <!-- Include of the footer -->
+    <div w3-include-html="html snippets/footer.html"></div>
+
     <!-- File transferts view -->
-    <div style="border: solid; position: fixed; bottom: 0; width: 100%">
-        <div style="border-bottom: solid; background-color: #dddddd">
+    <div style="border: solid; position: fixed; bottom: 0; width: 100%; background-color:#ffffff" id="fileTransfertsView">
+        <div style="border-bottom: solid; background-color: #f0f0f0">
             <p>
                 <i class="fa fa-arrow-circle-o-up fa-lg"></i>
                 <i class="fa fa-arrow-circle-o-down fa-lg"></i>
                 <strong>File transferts</strong>
                 <span class="pull-right">
                     <i class="fa fa-gear fa-lg"></i>
-                    <button class="btn" data-toggle="collapse" data-target="#fileTransfertsTable" onclick="onBtnCollapseClick()">
-                        <i id="imgChevronCollapse" class="fa fa-chevron-down fa-lg"></i>
-                    </button>
+                    <i id="imgChevronCollapse" class="fa fa-chevron-down fa-lg" onclick="onImgChevronClick()"
+                        data-toggle="collapse" data-target="#fileTransfertsTable"></i>
                 </span>
             </p>
         </div>
-        <table class="table collapse in" id="fileTransfertsTable">
-            <thead>
-                <tr>
-                    <th><i class="fa fa-square-o"></i></th>
-                    <th>Name</th>
-                    <th>Size</th>
-                    <th>Transfert type</th>
-                    <th>Status</th>
-                    <th>Speed</th>
-                    <th>Elapsed time</th>
-                    <th>Remaining time</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>1</td>
-                    <td>2</td>
-                    <td>3</td>
-                    <td>4</td>
-                    <td>5</td>
-                    <td>6</td>
-                    <td>7</td>
-                    <td>8</td>
-                    <td>9</td>
-            </tbody>
-        </table>
+        <div class="collapse in" id="fileTransfertsTable">
+            <table class="table table-condensed">
+                <thead>
+                    <tr>
+                        <th><i class="fa fa-square-o"></i></th>
+                        <th>Name</th>
+                        <th>Size</th>
+                        <th>Transfert type</th>
+                        <th>Status</th>
+                        <th>Speed</th>
+                        <th>Elapsed time</th>
+                        <th>Remaining time</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>2</td>
+                        <td>3</td>
+                        <td>4</td>
+                        <td>5</td>
+                        <td>6</td>
+                        <td>7</td>
+                        <td>8</td>
+                        <td>9</td>
+                </tbody>
+            </table>
+        </div>
     </div>
-
-    <!-- Include of the footer -->
-    <div w3-include-html="html snippets/footer.html"></div>
 
     <!-- Scripts -->
     <script>
@@ -129,7 +75,7 @@
     </script>
 
     <script>
-        function onBtnCollapseClick() {
+        function onImgChevronClick() {
             var imgChevronCollapse = $("#imgChevronCollapse");
             if(imgChevronCollapse.hasClass("fa-chevron-down")) {
                 imgChevronCollapse.removeClass("fa-chevron-down");
@@ -140,6 +86,22 @@
                 imgChevronCollapse.addClass("fa-chevron-down");
             }
         }
+        
+        var fileTransfertsView = $("#fileTransfertsView");
+
+        function defineBodyPadding()
+        {
+            var body = $("#body");
+            body.css("padding-bottom", fileTransfertsView.css("height"));
+        }
+
+        fileTransfertsView.on("hidden.bs.collapse", function() {
+            defineBodyPadding();
+            });
+        fileTransfertsView.on("shown.bs.collapse", function() {
+            defineBodyPadding();
+
+            });
     </script>
 
     <script src="librairies/Bootstrap/js/bootstrap.js"></script>
