@@ -15,6 +15,7 @@
     <script src="librairies/jQuery/jquery-3.1.1.js"></script>
     <script src="librairies/Angular/angular.min.js"></script>
     <script src="main.js"></script>
+    <script src="js/data-transfert.js"></script>
     <script src="librairies/Bootstrap/js/bootstrap.js"></script>
     <div w3-include-html="html snippets/header.html"></div>
 
@@ -22,13 +23,16 @@
     <div class="container body-content">
         <h1>Home</h1>
         <hr/>
+        <div>
+
+        </div>
     </div>
 
     <!-- Include of the footer -->
     <div w3-include-html="html snippets/footer.html"></div>
 
     <!-- File transferts view -->
-    <div class="fileTransfertsView" id="fileTransfertsView">
+    <div class="fileTransfertsView" id="fileTransfertsView" ng-controller="FilesController">
         <div class="fileTransfertsViewHeader">
             <p>
                 <i class="fa fa-arrow-circle-o-up fa-lg"></i>
@@ -42,7 +46,7 @@
             </p>
         </div>
         <div class="collapse in" id="fileTransfertsTable">
-            <table class="table table-condensed">
+            <table class="table table-condensed borderless">
                 <thead>
                     <tr>
                         <th><i class="fa fa-square-o"></i></th>
@@ -57,16 +61,16 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr><!-- Meaningless informations for test -->
-                        <td>1</td>
-                        <td>2</td>
-                        <td>3</td>
-                        <td>4</td>
-                        <td>5</td>
-                        <td>6</td>
-                        <td>7</td>
-                        <td>8</td>
-                        <td>9</td>
+                    <tr ng-repeat="file in files">
+                        <td><i class="fa fa-square-o"></i></td>
+                        <td>{{file.name}}</td>
+                        <td>{{file.size}}</td>
+                        <td>
+                            <i class="fa fa-lg" ng-class="{true:'fa-arrow-circle-o-up', false:'fa-arrow-circle-o-down'}
+                            [file.transfertType=='Upload']"></i>
+                            {{file.transfertType}}
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>

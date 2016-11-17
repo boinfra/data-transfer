@@ -10,3 +10,7 @@
 	border-bottom: solid; 
 	background-color: #f0f0f0;
 }
+
+table.borderless tbody td, table.borderless tbody th {
+	border: none;
+}
