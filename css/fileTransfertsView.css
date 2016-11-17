@@ -5,12 +5,14 @@
 
 .fileTransfertsView {
 	border: solid;
+	border-width: 1px;
 	width: 100%; 
 	background-color:#ffffff;
 }
 
 .fileTransfertsViewHeader {
-	border-bottom: solid; 
+	border-bottom: solid;
+	border-bottom-width: 1px;
 	background-color: #f0f0f0;
 }
 

@@ -10,15 +10,16 @@
 	<link rel="stylesheet" href="css/fileTransfertsView.css" />
 </head>
 
-<body ng-app="app">
+<body ng-app="app" ng-init="page='upload'">
 	<script src="http://www.w3schools.com/lib/w3data.js"></script>
 	<script src="librairies/jQuery/jquery-3.1.1.js"></script>
 	<script src="librairies/Angular/angular.min.js"></script>
+	<script src="/librairies/Bootpag/jquery.bootpag.min.js"></script>
 	<script src="main.js"></script>
 	<script src="js/data-transfert.js"></script>
 
 	<!-- Include of the navbar -->
-	<div w3-include-html="html snippets/header.html"></div>
+	<div w3-include-html="html_snippets/header.html"></div>
 
 	<!-- Body content -->
 	<div class="container body-content">
@@ -34,50 +35,16 @@
 		<br/>
 
 		<!-- File transferts view -->
-		<div class="fileTransfertsView" id="fileTransfertsView" ng-controller="TransfertsController">
-			<div class="collapse in" id="fileTransfertsTable">
-				<table class="table table-condensed borderless">
-					<thead>
-						<tr>
-							<th><i class="fa fa-square-o"></i></th>
-							<th>Name</th>
-							<th>Size</th>
-							<th>Transfert type</th>
-							<th>Status</th>
-							<th>Speed</th>
-							<th>Elapsed time</th>
-							<th>Remaining time</th>
-							<th>Actions</th>
-						</tr>
-					</thead>
-					<tbody>
-						<tr ng-repeat="transfert in transferts" ng-show="transfert.transfertType=='Upload'"
-							on-finish-render="ngRepeatFinishedUpload">
-							<td><i class="fa fa-square-o"></i></td>
-							<td>{{transfert.name}}</td>
-							<td>{{transfert.size}}</td>
-							<td>
-								<i class="fa fa-lg" ng-class="{true:'fa-arrow-circle-o-up', false:'fa-arrow-circle-o-down'}
-								[transfert.transfertType=='Upload']"></i> {{transfert.transfertType}}
-							</td>
-							<td>{{transfert.status}}</td>
-							<td>{{transfert.speed}}</td>
-							<td>{{transfert.elapsedTime}}</td>
-							<td>{{transfert.remainingTime}}</td>
-							<td>
-								<i class="fa fa-pause"></i>
-								<i class="fa fa-play"></i>
-								<i class="fa fa-stop"></i>
-							</td>
-						</tr>
-					</tbody>
-				</table>
-			</div>
-		</div>
+		<div w3-include-html="html_snippets/view.html"></div>
 	</div>
 
 	<!-- Include of the footer -->
-	<div w3-include-html="html snippets/footer.html"></div>
+	<div w3-include-html="html_snippets/footer.html"></div>
+
+	<script>
+		w3IncludeHTML();
+	</script>
+	<script src="/js/view.js"></script>
 
 </body>
 
