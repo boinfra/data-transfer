@@ -2,63 +2,83 @@
 <html>
 
 <head>
-    <title>Data transfert - Upload</title>
-    <meta charset="UTF-8" />
-    <link rel="stylesheet" href="librairies/bootstrap/css/bootstrap.css" />
-    <link rel="stylesheet" href="librairies/FontAwesome/css/font-awesome.css" />
-    <link rel="stylesheet" href="css/droppingZone.css" />
+	<title>Data transfert - Upload</title>
+	<meta charset="UTF-8" />
+	<link rel="stylesheet" href="librairies/bootstrap/css/bootstrap.css" />
+	<link rel="stylesheet" href="librairies/FontAwesome/css/font-awesome.css" />
+	<link rel="stylesheet" href="css/droppingZone.css" />
+	<link rel="stylesheet" href="css/fileTransfertsView.css" />
 </head>
 
-<body>
-    <!-- Include of the navbar -->
-    <script src="http://www.w3schools.com/lib/w3data.js"></script>
-    <script src="librairies/jQuery/jquery-3.1.1.js"></script>
-    <script src="librairies/Angular/angular.min.js"></script>
-    <div w3-include-html="html snippets/header.html"></div>
+<body ng-app="app">
+	<script src="http://www.w3schools.com/lib/w3data.js"></script>
+	<script src="librairies/jQuery/jquery-3.1.1.js"></script>
+	<script src="librairies/Angular/angular.min.js"></script>
+	<script src="main.js"></script>
+	<script src="js/data-transfert.js"></script>
 
-    <!-- Body content -->
-    <div class="container body-content">
-        <h1>Upload</h1>
-        <hr/>
-        <!-- drop zone -->
-        <div class="droppingZone">
-            <div class="droppingZoneContent">
-                <i class="fa fa-file-o fa-3x"></i><i class="fa fa-plus-circle"></i><br/>
-                <p>Drag n' drop files or folders here.</p>
-            </div>
-        </div>
-        <br/>
-        
-        <!-- Files tranfsferts view -->
-        <div>
-            <table class="table" style="border: solid">
-                <thead>
-                    <tr>
-                        <th><i class="fa fa-square-o"></i></th>
-                        <th>Name</th>
-                        <th>Size</th>
-                        <th>Transfert type</th>
-                        <th>Status</th>
-                        <th>Speed</th>
-                        <th>Elapsed time</th>
-                        <th>Remaining time</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
+	<!-- Include of the navbar -->
+	<div w3-include-html="html snippets/header.html"></div>
 
-                </tbody>
-            </table>
-        </div>
-    </div>
+	<!-- Body content -->
+	<div class="container body-content">
+		<h1>Upload</h1>
+		<hr/>
+		<!-- drop zone -->
+		<div class="droppingZone">
+			<div class="droppingZoneContent">
+				<i class="fa fa-file-o fa-3x"></i><i class="fa fa-plus-circle"></i><br/>
+				<p>Drag n' drop files or folders here.</p>
+			</div>
+		</div>
+		<br/>
 
-    <!-- Include of the footer -->
-    <div w3-include-html="html snippets/footer.html"></div>
+		<!-- File transferts view -->
+		<div class="fileTransfertsView" id="fileTransfertsView" ng-controller="TransfertsController">
+			<div class="collapse in" id="fileTransfertsTable">
+				<table class="table table-condensed borderless">
+					<thead>
+						<tr>
+							<th><i class="fa fa-square-o"></i></th>
+							<th>Name</th>
+							<th>Size</th>
+							<th>Transfert type</th>
+							<th>Status</th>
+							<th>Speed</th>
+							<th>Elapsed time</th>
+							<th>Remaining time</th>
+							<th>Actions</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr ng-repeat="transfert in transferts" ng-show="transfert.transfertType=='Upload'"
+							on-finish-render="ngRepeatFinishedUpload">
+							<td><i class="fa fa-square-o"></i></td>
+							<td>{{transfert.name}}</td>
+							<td>{{transfert.size}}</td>
+							<td>
+								<i class="fa fa-lg" ng-class="{true:'fa-arrow-circle-o-up', false:'fa-arrow-circle-o-down'}
+								[transfert.transfertType=='Upload']"></i> {{transfert.transfertType}}
+							</td>
+							<td>{{transfert.status}}</td>
+							<td>{{transfert.speed}}</td>
+							<td>{{transfert.elapsedTime}}</td>
+							<td>{{transfert.remainingTime}}</td>
+							<td>
+								<i class="fa fa-pause"></i>
+								<i class="fa fa-play"></i>
+								<i class="fa fa-stop"></i>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
 
-    <!-- Scripts -->
-    <script>
-        w3IncludeHTML();
-    </script>
+	<!-- Include of the footer -->
+	<div w3-include-html="html snippets/footer.html"></div>
+
 </body>
 
 </html>

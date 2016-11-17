@@ -1,7 +1,10 @@
-.fileTransfertsView {
-	border: solid; 
+.pull-bottom {
 	position: fixed; 
 	bottom: 0; 
+}
+
+.fileTransfertsView {
+	border: solid;
 	width: 100%; 
 	background-color:#ffffff;
 }

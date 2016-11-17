@@ -2,114 +2,138 @@
 <html>
 
 <head>
-    <title>Data transfert - Home</title>
-    <meta charset="UTF-8" />
-    <link rel="stylesheet" href="librairies/bootstrap/css/bootstrap.css" />
-    <link rel="stylesheet" href="librairies/FontAwesome/css/font-awesome.css" />
-    <link rel="stylesheet" href="css/fileTransfertsView.css" />
+	<title>Data transfert - Home</title>
+	<meta charset="UTF-8" />
+	<link rel="stylesheet" href="librairies/bootstrap/css/bootstrap.css" />
+	<link rel="stylesheet" href="librairies/FontAwesome/css/font-awesome.css" />
+	<link rel="stylesheet" href="css/fileTransfertsView.css" />
 </head>
 
 <body onload="defineBodyPadding()" ng-app="app">
-    <!-- Include of the navbar -->
-    <script src="http://www.w3schools.com/lib/w3data.js"></script>
-    <script src="librairies/jQuery/jquery-3.1.1.js"></script>
-    <script src="librairies/Angular/angular.min.js"></script>
-    <script src="main.js"></script>
-    <script src="js/data-transfert.js"></script>
-    <script src="librairies/Bootstrap/js/bootstrap.js"></script>
-    <div w3-include-html="html snippets/header.html"></div>
+	<script src="http://www.w3schools.com/lib/w3data.js"></script>
+	<script src="librairies/jQuery/jquery-3.1.1.js"></script>
+	<script src="librairies/Angular/angular.min.js"></script>
+	<script src="main.js"></script>
+	<script src="js/data-transfert.js"></script>
+	<script src="librairies/Bootstrap/js/bootstrap.js"></script>
+	<script src="librairies/Bootpag/jquery.bootpag.min.js"></script>
 
-    <!-- Body content -->
-    <div class="container body-content">
-        <h1>Home</h1>
-        <hr/>
-        <div>
+	<!-- Include of the navbar -->
+	<div w3-include-html="html snippets/header.html"></div>
 
-        </div>
-    </div>
+	<!-- Body content -->
+	<div class="container body-content">
+		<h1>Home</h1>
+		<hr/>
+		<div>
+		</div>
+	</div>
 
-    <!-- Include of the footer -->
-    <div w3-include-html="html snippets/footer.html"></div>
+	<!-- Include of the footer -->
+	<div w3-include-html="html snippets/footer.html"></div>
 
-    <!-- File transferts view -->
-    <div class="fileTransfertsView" id="fileTransfertsView" ng-controller="FilesController">
-        <div class="fileTransfertsViewHeader">
-            <p>
-                <i class="fa fa-arrow-circle-o-up fa-lg"></i>
-                <i class="fa fa-arrow-circle-o-down fa-lg"></i>
-                <strong>File transferts</strong>
-                <span class="pull-right">
-                    <i class="fa fa-gear fa-lg"></i>
-                    <i id="imgChevronCollapse" class="fa fa-chevron-down fa-lg" onclick="onImgChevronClick()"
-                        data-toggle="collapse" data-target="#fileTransfertsTable"></i>
-                </span>
-            </p>
-        </div>
-        <div class="collapse in" id="fileTransfertsTable">
-            <table class="table table-condensed borderless">
-                <thead>
-                    <tr>
-                        <th><i class="fa fa-square-o"></i></th>
-                        <th>Name</th>
-                        <th>Size</th>
-                        <th>Transfert type</th>
-                        <th>Status</th>
-                        <th>Speed</th>
-                        <th>Elapsed time</th>
-                        <th>Remaining time</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr ng-repeat="file in files">
-                        <td><i class="fa fa-square-o"></i></td>
-                        <td>{{file.name}}</td>
-                        <td>{{file.size}}</td>
-                        <td>
-                            <i class="fa fa-lg" ng-class="{true:'fa-arrow-circle-o-up', false:'fa-arrow-circle-o-down'}
-                            [file.transfertType=='Upload']"></i>
-                            {{file.transfertType}}
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
+	<!-- File transferts view -->
+	<div class="fileTransfertsView pull-bottom" id="fileTransfertsView" ng-controller="TransfertsController">
+		<div class="fileTransfertsViewHeader">
+			<p>
+				<i class="fa fa-arrow-circle-o-up fa-lg"></i>
+				<i class="fa fa-arrow-circle-o-down fa-lg"></i>
+				<strong>File transferts</strong>
+				<span class="pull-right">
+					<i class="fa fa-gear fa-lg"></i>
+					<i id="imgChevronCollapse" class="fa fa-chevron-down fa-lg" onclick="onImgChevronClick()"
+						data-toggle="collapse" data-target="#fileTransfertsTable"></i>
+				</span>
+			</p>
+		</div>
+		<div class="collapse in" id="fileTransfertsTable">
+			<table class="table table-condensed borderless">
+				<thead>
+					<tr>
+						<th><i class="fa fa-square-o"></i></th>
+						<th>Name</th>
+						<th>Size</th>
+						<th>Transfert type</th>
+						<th>Status</th>
+						<th>Speed</th>
+						<th>Elapsed time</th>
+						<th>Remaining time</th>
+						<th>Actions</th>
+					</tr>
+				</thead>
+				<tbody id="tableBody">
+					<tr ng-repeat="transfert in displayedTransferts" on-finish-render="ngRepeatFinishedBrowse">
+						<td><i class="fa fa-square-o"></i></td>
+						<td>{{transfert.name}}</td>
+						<td>{{transfert.size}}</td>
+						<td>
+							<i class="fa fa-lg" ng-class="{true:'fa-arrow-circle-o-up', false:'fa-arrow-circle-o-down'}
+							[transfert.transfertType=='Upload']"></i> {{transfert.transfertType}}
+						</td>
+						<td>{{transfert.status}}</td>
+						<td>{{transfert.speed}}</td>
+						<td>{{transfert.elapsedTime}}</td>
+						<td>{{transfert.remainingTime}}</td>
+						<td>
+							<i class="fa fa-pause"></i>
+							<i class="fa fa-play"></i>
+							<i class="fa fa-stop"></i>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+		<div id="page-selection"></div>
+	</div>
 
-    <!-- Scripts -->
-    <script>
-        w3IncludeHTML();
-    </script>
+	<!-- Scripts -->
+	<script>
+		w3IncludeHTML();
 
-    <script>
-        function onImgChevronClick() {
-            var imgChevronCollapse = $("#imgChevronCollapse");
-            if(imgChevronCollapse.hasClass("fa-chevron-down")) {
-                imgChevronCollapse.removeClass("fa-chevron-down");
-                imgChevronCollapse.addClass("fa-chevron-up");
-            }
-            else if(imgChevronCollapse.hasClass("fa-chevron-up")) {
-                imgChevronCollapse.removeClass("fa-chevron-up");
-                imgChevronCollapse.addClass("fa-chevron-down");
-            }
-        }
-        
-        var fileTransfertsView = $("#fileTransfertsView");
+		function paginate() {
+			var scope = angular.element($("#fileTransfertsView")).scope();
+			scope.pageCount = (scope.transferts.length / scope.displayedTransfertsCount) + 1;
+			// init bootpag
+			$('#page-selection').bootpag({
+				total: scope.pageCount,
+				maxVisible: 5,
+				firstLastUse: true,
+				first: '←',
+				last: '→',
+			}).on("page", function(event, num){
+				scope.changePage(num);
+				scope.$apply();
+			});
+		}
 
-        function defineBodyPadding()
-        {
-            var body = $("body");
-            body.css("padding-bottom", fileTransfertsView.css("height"));
-        }
+		function onImgChevronClick() {
+			var imgChevronCollapse = $("#imgChevronCollapse");
+			if(imgChevronCollapse.hasClass("fa-chevron-down")) {
+				imgChevronCollapse.removeClass("fa-chevron-down");
+				imgChevronCollapse.addClass("fa-chevron-up");
+			}
+			else if(imgChevronCollapse.hasClass("fa-chevron-up")) {
+				imgChevronCollapse.removeClass("fa-chevron-up");
+				imgChevronCollapse.addClass("fa-chevron-down");
+			}
+		}
+		
+		var fileTransfertsView = $("#fileTransfertsView");
 
-        fileTransfertsView.on("hidden.bs.collapse", function() {
-            defineBodyPadding();
-            });
-        fileTransfertsView.on("shown.bs.collapse", function() {
-            defineBodyPadding();
+		function defineBodyPadding() {
+			var body = $("body");
+			body.css("padding-bottom", fileTransfertsView.css("height"));
+		}
 
-            });
-    </script>
+		fileTransfertsView.on("hidden.bs.collapse", function() {
+			defineBodyPadding();
+		});
+
+		fileTransfertsView.on("shown.bs.collapse", function() {
+			defineBodyPadding();
+		});
+	</script>
+
 </body>
 
 </html>
