@@ -1,8 +1,9 @@
 var fileTransfertsView = $("#fileTransfertsView");
 
 function paginate() {
-	var scope = angular.element(fileTransfertsView).scope();
-	scope.pageCount = (scope.transferts.length / scope.displayedTransfertsCount) + 1;
+    var scope = angular.element(fileTransfertsView).scope();
+	var array = scope.page == 'upload' ? scope.uploadTransferts : scope.transferts;
+	scope.pageCount = (array.length / scope.displayedTransfertsCount) + 1;
 	// init bootpag
 	$('#page-selection').bootpag({
 		total: scope.pageCount,
@@ -14,7 +15,7 @@ function paginate() {
 		scope.changePage(num);
 		scope.$apply();
 		});
-	defineBodyPadding();
+	scope.defineBodyPadding();
 }
 
 function onImgChevronClick() {

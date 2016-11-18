@@ -10,16 +10,15 @@
 	<link rel="stylesheet" href="css/fileTransfertsView.css" />
 </head>
 
-<body ng-app="app" ng-init="page='upload'">
-	<script src="http://www.w3schools.com/lib/w3data.js"></script>
+<body ng-app="app" ng-init="pageName='upload'">
 	<script src="librairies/jQuery/jquery-3.1.1.js"></script>
 	<script src="librairies/Angular/angular.min.js"></script>
+	<script src="js/main.js"></script>
 	<script src="/librairies/Bootpag/jquery.bootpag.min.js"></script>
-	<script src="main.js"></script>
 	<script src="js/data-transfert.js"></script>
 
 	<!-- Include of the navbar -->
-	<div w3-include-html="html_snippets/header.html"></div>
+	<div ng-include="'html_snippets/header.html'"></div>
 
 	<!-- Body content -->
 	<div class="container body-content">
@@ -33,18 +32,13 @@
 			</div>
 		</div>
 		<br/>
-
 		<!-- File transferts view -->
-		<div w3-include-html="html_snippets/view.html"></div>
+		<div ng-include="'html_snippets/view.html'"></div>
+
 	</div>
 
 	<!-- Include of the footer -->
-	<div w3-include-html="html_snippets/footer.html"></div>
-
-	<script>
-		w3IncludeHTML();
-	</script>
-	<script src="/js/view.js"></script>
+	<div ng-include="'html_snippets/footer.html'"></div>
 
 </body>
 

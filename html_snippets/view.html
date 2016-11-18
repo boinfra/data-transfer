@@ -1,5 +1,6 @@
-<div class="fileTransfertsView" ng-class="{'pull-bottom': page == 'browse'}" id="fileTransfertsView" ng-controller="TransfertsController">
-	<div class="fileTransfertsViewHeader" ng-show="page=='browse'">
+<div class="fileTransfertsView" ng-class="{'pull-bottom': page == 'browse'}" id="fileTransfertsView" ng-controller="TransfertsController"
+	ng-init="page=pageName">
+	<div class="fileTransfertsViewHeader" ng-show="pageName=='browse'">
 		<p>
 			<i class="fa fa-arrow-circle-o-up fa-2x"></i>
 			<i class="fa fa-arrow-circle-o-down fa-2x"></i>
@@ -11,7 +12,7 @@
 				</span>
 		</p>
 	</div>
-	<div class="collapse in" id="fileTransfertsTable" onshow="defineBodyPadding()">
+	<div class="collapse in" id="fileTransfertsTable">
 		<table class="table table-condensed borderless">
 			<thead>
 				<tr>
@@ -27,7 +28,7 @@
 				</tr>
 			</thead>
 			<tbody id="tableBody">
-				<tr ng-repeat="transfert in displayedTransferts" on-finish-render="ngRepeatFinishedBrowse" ng-show="transfert.transfertType=='Upload' || page=='browse'">
+				<tr ng-repeat="transfert in displayedTransferts" on-finish-render="ngRepeatFinished" ng-show="transfert.transfertType=='Upload' || pageName=='browse'">
 					<td><i class="fa fa-square-o fa-lg"></i></td>
 					<td>{{transfert.name}}</td>
 					<td>{{transfert.size}}</td>
