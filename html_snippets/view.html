@@ -1,5 +1,4 @@
-<div class="fileTransfertsView" ng-class="{'pull-bottom': page == 'browse'}" id="fileTransfertsView" 
-	ng-controller="TransfertsController">
+<div class="fileTransfertsView" ng-class="{'pull-bottom': page == 'browse'}" id="fileTransfertsView" ng-controller="TransfertsController">
 	<div class="fileTransfertsViewHeader" ng-show="page=='browse'">
 		<p>
 			<i class="fa fa-arrow-circle-o-up fa-2x"></i>
@@ -12,7 +11,7 @@
 				</span>
 		</p>
 	</div>
-	<div class="collapse in" id="fileTransfertsTable">
+	<div class="collapse in" id="fileTransfertsTable" onshow="defineBodyPadding()">
 		<table class="table table-condensed borderless">
 			<thead>
 				<tr>
@@ -28,8 +27,7 @@
 				</tr>
 			</thead>
 			<tbody id="tableBody">
-				<tr ng-repeat="transfert in displayedTransferts" on-finish-render="ngRepeatFinishedBrowse" 
-					ng-show="transfert.transfertType=='Upload' || page=='browse'">
+				<tr ng-repeat="transfert in displayedTransferts" on-finish-render="ngRepeatFinishedBrowse" ng-show="transfert.transfertType=='Upload' || page=='browse'">
 					<td><i class="fa fa-square-o fa-lg"></i></td>
 					<td>{{transfert.name}}</td>
 					<td>{{transfert.size}}</td>
@@ -52,3 +50,4 @@
 		<div id="page-selection"></div>
 	</div>
 </div>
+<script src="/js/view.js"></script>

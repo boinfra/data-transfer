@@ -1,5 +1,4 @@
 var fileTransfertsView = $("#fileTransfertsView");
-console.debug(fileTransfertsView);
 
 function paginate() {
 	var scope = angular.element(fileTransfertsView).scope();
@@ -14,7 +13,8 @@ function paginate() {
 	}).on("page", function (event, num) {
 		scope.changePage(num);
 		scope.$apply();
-	});
+		});
+	defineBodyPadding();
 }
 
 function onImgChevronClick() {
@@ -27,11 +27,6 @@ function onImgChevronClick() {
 		imgChevronCollapse.removeClass("fa-chevron-up");
 		imgChevronCollapse.addClass("fa-chevron-down");
 	}
-}
-
-function defineBodyPadding() {
-	var body = $("body");
-	body.css("padding-bottom", fileTransfertsView.css("height"));
 }
 
 fileTransfertsView.on("hidden.bs.collapse", function () {
