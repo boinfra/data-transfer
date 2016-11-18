@@ -35,7 +35,7 @@ angular.module("data-transfert", [])
 				$scope.changePage(1);
 			});
 
-			$scope.defineBodyPadding = function() {
+            $scope.defineBodyPadding = function() {
 				var body = $("body");
 				body.css("padding-bottom", fileTransfertsView.css("height"));
 			}

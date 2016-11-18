@@ -1,7 +1,8 @@
 var fileTransfertsView = $("#fileTransfertsView");
+var scope;
 
 function paginate() {
-    var scope = angular.element(fileTransfertsView).scope();
+    scope = angular.element(fileTransfertsView).scope()
     var array = scope.page == 'upload' ? scope.uploadTransferts : scope.transferts;
     scope.pageCount = (array.length / scope.displayedTransfertsCount) + 1;
     // init bootpag
