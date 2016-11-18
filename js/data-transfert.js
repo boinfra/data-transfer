@@ -9,8 +9,8 @@ angular.module("data-transfert", [])
 			$scope.displayedTransfertsCount = 5;
 			$scope.pageCount = 1;
 
-            $scope.changePage = function(num) {
-                var array = $scope.page == 'upload' ? $scope.uploadTransferts : $scope.transferts;
+			$scope.changePage = function(num) {
+				var array = $scope.page == 'upload' ? $scope.uploadTransferts : $scope.transferts;
 				$scope.displayedTransferts = [];
 				for (var i = 0, trans = (num - 1) * 5; i < $scope.displayedTransfertsCount; i++ , trans++) {
 					if (array[trans] !== undefined)
@@ -28,8 +28,8 @@ angular.module("data-transfert", [])
 			$http.get(ConfigService.Url).success(function(data) {
 				$scope.transferts = data;
 				for (var i = 0; i < $scope.transferts.length; i++) {
-                    if ($scope.transferts[i].transfertType == 'Upload') {
-                        $scope.uploadTransferts.push($scope.transferts[i]);
+					if ($scope.transferts[i].transfertType == 'Upload') {
+						$scope.uploadTransferts.push($scope.transferts[i]);
 					}
 				}
 				$scope.changePage(1);

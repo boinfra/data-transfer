@@ -2,53 +2,55 @@
 	ng-init="page=pageName">
 	<div class="fileTransfertsViewHeader" ng-show="pageName=='browse'">
 		<p>
-			<i class="fa fa-arrow-circle-o-up fa-2x"></i>
-			<i class="fa fa-arrow-circle-o-down fa-2x"></i>
+			<i class="fa fa-arrow-circle-o-up fa-lg"></i>
+			<i class="fa fa-arrow-circle-o-down fa-lg"></i>
 			<strong>File transferts</strong>
 			<span class="pull-right">
-					<i class="fa fa-gear fa-2x"></i>
-					<i id="imgChevronCollapse" class="fa fa-chevron-down fa-2x" onclick="onImgChevronClick()"
-						data-toggle="collapse" data-target="#fileTransfertsTable"></i>
-				</span>
+				<i class="fa fa-gear fa-2x"></i>
+				<i id="imgChevronCollapse" class="fa fa-chevron-down fa-2x" onclick="onImgChevronClick()"
+					data-toggle="collapse" data-target="#fileTransfertsTable"></i>
+			</span>
 		</p>
 	</div>
-	<div class="collapse in" id="fileTransfertsTable">
-		<table class="table table-condensed borderless">
-			<thead>
-				<tr>
-					<th><i class="fa fa-square-o fa-lg"></i></th>
-					<th>Name</th>
-					<th>Size</th>
-					<th>Transfert type</th>
-					<th>Status</th>
-					<th>Speed</th>
-					<th>Elapsed time</th>
-					<th>Remaining time</th>
-					<th>Actions</th>
-				</tr>
-			</thead>
-			<tbody id="tableBody">
-				<tr ng-repeat="transfert in displayedTransferts" on-finish-render="ngRepeatFinished" ng-show="transfert.transfertType=='Upload' || pageName=='browse'">
-					<td><i class="fa fa-square-o fa-lg"></i></td>
-					<td>{{transfert.name}}</td>
-					<td>{{transfert.size}}</td>
-					<td>
-						<i class="fa fa-lg" ng-class="{true:'fa-arrow-circle-o-up', false:'fa-arrow-circle-o-down'}
+	<div id="fileTransfertsViewBody" class="fileTransfertsViewBody">
+		<div class="collapse in" id="fileTransfertsTable">
+			<table class="table table-condensed borderless">
+				<thead>
+					<tr>
+						<th><i class="fa fa-square-o fa-lg"></i></th>
+						<th>Name</th>
+						<th>Size</th>
+						<th>Transfert type</th>
+						<th>Status</th>
+						<th>Speed</th>
+						<th>Elapsed time</th>
+						<th>Remaining time</th>
+						<th>Actions</th>
+					</tr>
+				</thead>
+				<tbody id="tableBody">
+					<tr ng-repeat="transfert in displayedTransferts" on-finish-render="ngRepeatFinished" ng-show="transfert.transfertType=='Upload' || pageName=='browse'">
+						<td><i class="fa fa-square-o fa-lg"></i></td>
+						<td>{{transfert.name}}</td>
+						<td>{{transfert.size}}</td>
+						<td>
+							<i class="fa fa-lg" ng-class="{true:'fa-arrow-circle-o-up', false:'fa-arrow-circle-o-down'}
 							[transfert.transfertType=='Upload']"></i> {{transfert.transfertType}}
-					</td>
-					<td>{{transfert.status}}</td>
-					<td>{{transfert.speed}}</td>
-					<td>{{transfert.elapsedTime}}</td>
-					<td>{{transfert.remainingTime}}</td>
-					<td>
-						<i class="fa fa-pause fa-lg"></i>
-						<i class="fa fa-play fa-lg"></i>
-						<i class="fa fa-stop fa-lg"></i>
-					</td>
-				</tr>
-			</tbody>
-		</table>
-		<div id="page-selection"></div>
+						</td>
+						<td>{{transfert.status}}</td>
+						<td>{{transfert.speed}}</td>
+						<td>{{transfert.elapsedTime}}</td>
+						<td>{{transfert.remainingTime}}</td>
+						<td>
+							<i class="fa fa-pause fa-lg"></i>
+							<i class="fa fa-play fa-lg"></i>
+							<i class="fa fa-stop fa-lg"></i>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			<div id="page-selection" class="pagination"></div>
+		</div>
 	</div>
 </div>
 <script src="/js/view.js"></script>

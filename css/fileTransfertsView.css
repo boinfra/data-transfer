@@ -10,6 +10,14 @@
 	background-color:#ffffff;
 }
 
+.fileTransfertsViewBody {
+	text-align: center;
+}
+
+.pagination {
+	display: inline-block;
+}
+
 .fileTransfertsViewHeader {
 	border-bottom: solid;
 	border-bottom-width: 1px;
