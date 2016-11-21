@@ -1,8 +1,0 @@
-{
-  "name": "data-transfer",
-  "author": "FBoinay",
-  "version": "0.1.0",
-  "dependencies": {
-    "express": "~4.12.2"
-  }
-}
