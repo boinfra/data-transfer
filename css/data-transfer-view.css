@@ -27,3 +27,18 @@
 table.borderless tbody td, table.borderless tbody th {
 	border: none;
 }
+
+.droppingZone {
+	border-style: dashed;
+	border-radius: 15px;
+	width: 100%;
+	height: 150px;
+	text-align: center;
+	display: table;
+	background-color: #f0f0f0;
+}
+
+.droppingZoneContent {
+	vertical-align: middle;
+	display: table-cell;
+}
