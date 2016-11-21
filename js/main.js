@@ -1,4 +1,4 @@
-angular.module("app", ["data-transfert"])
+angular.module("app", ["data-transfer"])
 
 	.config(["$httpProvider", "DemoDataProvider", function ($httpProvider, DemoDataProvider) {
 		
@@ -35,97 +35,97 @@ angular.module("app", ["data-transfert"])
 					{
 						"name": "DICOM_patientXY_1.dcm",
 						"size": "1.5 MB",
-						"transfertType": "Upload",
+						"transferType": "Upload",
 						"status": "Queued"
 					},
 					{
 						"name": "DICOM_patientXY_2.dcm",
 						"size": "1.7 MB",
-						"transfertType": "Upload",
+						"transferType": "Upload",
 						"status": "Queued"
 					},
 					{
 						"name": "VSD.Thorax.089Y.M.CT.7.000.dcm.zip",
 						"size": "2 GB",
-						"transfertType": "Download",
+						"transferType": "Download",
 						"status": "Queued"
 					},
 					{
 						"name": "NIFTI_patientXY.nii",
 						"size": "1.2 MB",
-						"transfertType": "Upload",
+						"transferType": "Upload",
 						"status": "Queued"
 					},
 					{
 						"name": "DICOM_patientXY_1.dcm",
 						"size": "1.5 MB",
-						"transfertType": "Upload",
+						"transferType": "Upload",
 						"status": "Queued"
 					},
 					{
 						"name": "DICOM_patientXY_2.dcm",
 						"size": "1.7 MB",
-						"transfertType": "Upload",
+						"transferType": "Upload",
 						"status": "Queued"
 					},
 					{
 						"name": "VSD.Thorax.089Y.M.CT.7.000.dcm.zip",
 						"size": "2 GB",
-						"transfertType": "Download",
+						"transferType": "Download",
 						"status": "Queued"
 					},
 					{
 						"name": "NIFTI_patientXY.nii",
 						"size": "1.2 MB",
-						"transfertType": "Upload",
+						"transferType": "Upload",
 						"status": "Queued"
 					},
 					{
 						"name": "DICOM_patientXY_1.dcm",
 						"size": "1.5 MB",
-						"transfertType": "Upload",
+						"transferType": "Upload",
 						"status": "Queued"
 					},
 					{
 						"name": "DICOM_patientXY_2.dcm",
 						"size": "1.7 MB",
-						"transfertType": "Upload",
+						"transferType": "Upload",
 						"status": "Queued"
 					},
 					{
 						"name": "VSD.Thorax.089Y.M.CT.7.000.dcm.zip",
 						"size": "2 GB",
-						"transfertType": "Download",
+						"transferType": "Download",
 						"status": "Queued"
 					},
 					{
 						"name": "NIFTI_patientXY.nii",
 						"size": "1.2 MB",
-						"transfertType": "Upload",
+						"transferType": "Upload",
 						"status": "Queued"
 					},
 					{
 						"name": "DICOM_patientXY_1.dcm",
 						"size": "1.5 MB",
-						"transfertType": "Upload",
+						"transferType": "Upload",
 						"status": "Queued"
 					},
 					{
 						"name": "DICOM_patientXY_2.dcm",
 						"size": "1.7 MB",
-						"transfertType": "Upload",
+						"transferType": "Upload",
 						"status": "Queued"
 					},
 					{
 						"name": "VSD.Thorax.089Y.M.CT.7.000.dcm.zip",
 						"size": "2 GB",
-						"transfertType": "Download",
+						"transferType": "Download",
 						"status": "Queued"
 					},
 					{
 						"name": "NIFTI_patientXY.nii",
 						"size": "1.2 MB",
-						"transfertType": "Upload",
+						"transferType": "Upload",
 						"status": "Queued"
 					}
 				];
@@ -138,5 +138,5 @@ angular.module("app", ["data-transfert"])
 	})
 	
 	.service("ConfigService", function () {
-		this.Url = "https://localhost/data-transfert/files";
+		this.Url = "https://localhost/data-transfer/files";
 	});

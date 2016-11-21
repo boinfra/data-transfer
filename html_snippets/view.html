@@ -1,26 +1,26 @@
-<div class="fileTransfertsView" ng-class="{'pull-bottom': page == 'browse'}" id="fileTransfertsView" 
-	ng-controller="TransfertsController" ng-init="page=pageName">
-	<div class="fileTransfertsViewHeader" ng-show="page=='browse'">
+<div class="fileTransfersView" ng-class="{'pull-bottom': page == 'browse'}" id="fileTransfersView" 
+	ng-controller="TransfersController" ng-init="page=pageName">
+	<div class="fileTransfersViewHeader" ng-show="page=='browse'">
 		<p>
 			<i class="fa fa-arrow-circle-o-up fa-lg"></i>
 			<i class="fa fa-arrow-circle-o-down fa-lg"></i>
-			<strong>File transferts</strong>
+			<strong>File transfers</strong>
 			<span class="pull-right">
 				<i class="fa fa-gear fa-2x"></i>
 				<i id="imgChevronCollapse" class="fa fa-chevron-down fa-2x" onclick="onImgChevronClick()"
-					data-toggle="collapse" data-target="#fileTransfertsTable"></i>
+					data-toggle="collapse" data-target="#fileTransfersTable"></i>
 			</span>
 		</p>
 	</div>
-	<div id="fileTransfertsViewBody" class="fileTransfertsViewBody">
-		<div class="collapse in" id="fileTransfertsTable">
+	<div id="fileTransfersViewBody" class="fileTransfersViewBody">
+		<div class="collapse in" id="fileTransfersTable">
 			<table class="table table-condensed borderless">
 				<thead>
 					<tr>
 						<th><i class="fa fa-square-o fa-lg"></i></th>
 						<th>Name</th>
 						<th>Size</th>
-						<th>Transfert type</th>
+						<th>Transfer type</th>
 						<th>Status</th>
 						<th>Speed</th>
 						<th>Elapsed time</th>
@@ -29,19 +29,19 @@
 					</tr>
 				</thead>
 				<tbody id="tableBody">
-					<tr ng-repeat="transfert in displayedTransferts" on-finish-render="ngRepeatFinished" 
-						ng-show="transfert.transfertType=='Upload' || page=='browse'">
+					<tr ng-repeat="transfer in displayedTransfers" on-finish-render="ngRepeatFinished" 
+						ng-show="transfer.transferType=='Upload' || page=='browse'">
 						<td><i class="fa fa-square-o fa-lg"></i></td>
-						<td>{{transfert.name}}</td>
-						<td>{{transfert.size}}</td>
+						<td>{{transfer.name}}</td>
+						<td>{{transfer.size}}</td>
 						<td>
 							<i class="fa fa-lg" ng-class="{true:'fa-arrow-circle-o-up', false:'fa-arrow-circle-o-down'}
-							[transfert.transfertType=='Upload']"></i> {{transfert.transfertType}}
+							[transfer.transferType=='Upload']"></i> {{transfer.transferType}}
 						</td>
-						<td>{{transfert.status}}</td>
-						<td>{{transfert.speed}}</td>
-						<td>{{transfert.elapsedTime}}</td>
-						<td>{{transfert.remainingTime}}</td>
+						<td>{{transfer.status}}</td>
+						<td>{{transfer.speed}}</td>
+						<td>{{transfer.elapsedTime}}</td>
+						<td>{{transfer.remainingTime}}</td>
 						<td>
 							<i class="fa fa-pause fa-lg"></i>
 							<i class="fa fa-play fa-lg"></i>

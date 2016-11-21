@@ -1,10 +1,10 @@
-var fileTransfertsView = $("#fileTransfertsView");
+var fileTransfersView = $("#fileTransfersView");
 var scope;
 
 function paginate() {
-    scope = angular.element(fileTransfertsView).scope()
-    var array = scope.page == 'upload' ? scope.uploadTransferts : scope.transferts;
-    scope.pageCount = (array.length / scope.displayedTransfertsCount) + 1;
+    scope = angular.element(fileTransfersView).scope()
+    var array = scope.page == 'upload' ? scope.uploadTransfers : scope.transfers;
+    scope.pageCount = (array.length / scope.displayedTransfersCount) + 1;
     // init bootpag
     $('#page-selection').bootpag({
         total: scope.pageCount,
@@ -32,12 +32,12 @@ function onImgChevronClick() {
     }
 }
 
-fileTransfertsView.on("hidden.bs.collapse", function() {
+fileTransfersView.on("hidden.bs.collapse", function() {
     if (scope.page == 'browse')
         scope.defineBodyPadding();
 });
 
-fileTransfertsView.on("shown.bs.collapse", function() {
+fileTransfersView.on("shown.bs.collapse", function() {
     if (scope.page == 'browse')
         scope.defineBodyPadding();
 });
