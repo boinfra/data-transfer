@@ -1,6 +1,6 @@
 // Cross browser support
 var isChromium = window.chrome,
-	chrome, // Indicates if browser is chrome or compatible (chrome iOS, opera)
+	chrome,
 	winNav = window.navigator,
 	vendorName = winNav.vendor,
 	isOpera = winNav.userAgent.indexOf("OPR") > -1,
@@ -20,8 +20,7 @@ if (isIOSChrome) {
 }
 
 // Drop
-var files = [];
-var filesCount = 0;
+var files = { names: [], contents: [], count: 0 };
 
 function allowDrop(ev) {
 	ev.preventDefault();
@@ -32,61 +31,27 @@ function drop(ev) {
 	var droppedFiles = chrome ? ev.dataTransfer.items : ev.dataTransfer.files;
 	if (chrome) {
 		for (var i = 0; i < droppedFiles.length; i++) {
-			var droppedFile = droppedFiles[i];
-			var entry = droppedFile.webkitGetAsEntry();
+			var entry = droppedFiles[i].webkitGetAsEntry();
 			if (entry.isFile) {
-				readFile(entry);
+				console.debug("file");
 			}
 			else if (entry.isDirectory) {
-				console.debug(entry.name);
-				scanFiles(entry, droppedFile);
+				console.debug("directory");
 			}
 		}
 	}
 	else {
 		for (var i = 0; i < droppedFiles.length; i++) {
-			readFile(droppedFiles[i]);
-		}
-	}
-}
-
-var readFile = chrome ?
-	function (entry) {
-		files.push({ name: entry.name });
-		entry.file(function (file) {
+			var file = droppedFiles[i];
+			files.names[i] = file.name;
 			var reader = new FileReader();
 			reader.readAsText(file);
 			reader.onload = function (e) {
-				files[filesCount].content = e.target.result;
-				console.debug(files[filesCount].name);
-				console.debug(files[filesCount].content);
-				filesCount++;
+				files.contents[files.count] = e.target.result;
+				console.debug(files.names[files.count]);
+				console.debug(files.contents[files.count]);
+				files.count++;
 			};
-		});
-	} : function (file) {
-		files.push({ name: file.name });
-		var reader = new FileReader();
-		reader.readAsText(file);
-		reader.onload = function (e) {
-			files[filesCount].content = e.target.result;
-			console.debug(files[filesCount].name);
-			console.debug(files[filesCount].content);
-			filesCount++;
-		};
-	};
-
-function scanFiles(item, droppedFile) {
-	let directoryReader = item.createReader();
-
-	directoryReader.readEntries(function (entries) {
-		entries.forEach(function (entry) {
-			if (entry.isDirectory) {
-				console.debug(entry.fullPath);
-				scanFiles(entry, droppedFile);
-			}
-			else if (entry.isFile) {
-				readFile(entry);
-			};
-		});
-	});
-}	
+		}
+	}
+}
