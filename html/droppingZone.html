@@ -1,10 +1,8 @@
-<link rel="stylesheet" href="/data-transfer/css/view.css" />
+<link rel="stylesheet" href="/data-transfer/css/data-transfer.css" />
 
-<div class="droppingZone" ondrop="drop(event)" ondragover="allowDrop(event)">
+<div ng-controller="DropController" class="droppingZone" ondrop="drop(event)" ondragover="allowDrop(event)">
 	<div class="droppingZoneContent">
 		<i class="fa fa-file-o fa-3x"></i><i class="fa fa-plus-circle"></i><br/>
 		<p id="dropMessage"></p>
 	</div>
 </div>
-
-<script src="/data-transfer/js/drop.js"></script>
