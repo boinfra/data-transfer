@@ -1,7 +1,8 @@
+// Function that returns true if the user is using a browser that is compatible with webkit technology (which alloes to drop folders)
 function isChrome() {
-	// Cross browser support
-	var isChromium = window.chrome,
-		chrome,
+	var chrome,
+	// Code copied from internet (http://stackoverflow.com/questions/4565112/javascript-how-to-find-out-if-the-user-browser-is-chrome)	
+		isChromium = window.chrome,
 		winNav = window.navigator,
 		vendorName = winNav.vendor,
 		isOpera = winNav.userAgent.indexOf("OPR") > -1,

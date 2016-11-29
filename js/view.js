@@ -1,10 +1,10 @@
-var fileTransfersView = $("#fileTransfersView");
-var scope;
+var fileTransfersView = $("#fileTransfersView"); // Get the view with jQuery
+var scope; // scope of the transfersController
 
+// Build and display the pagination
 function paginate() {
-    scope = angular.element(fileTransfersView).scope()
-    var array = scope.page == 'upload' ? scope.uploadTransfers : scope.transfers;
-    scope.pageCount = (array.length / scope.displayedTransfersCount) + 1;
+    scope = angular.element(fileTransfersView).scope(); // Get transfersController's scope
+    scope.pageCount = (scope.transfers.length / scope.displayedTransfersCount) + 1; // Calculate number of pages from number of transfers to display
     // init bootpag
     $('#page-selection').bootpag({
         total: scope.pageCount,
@@ -12,18 +12,22 @@ function paginate() {
         firstLastUse: true,
         first: '←',
         last: '→',
-    }).on("page", function(event, num) {
-        scope.changePage(num);
-        scope.$apply();
-    });
-    if (scope.page == 'browse')
-        scope.defineBodyPadding();
+    })
+        // When the user navigates in the pagination
+        .on("page", function (event, num) {
+            scope.changePage(num); // Change the current page
+            scope.$apply(); // Apply changes to be displayed on the view
+        });
+    if (scope.page != 'upload') // If the page is not "upload"
+        scope.defineBodyPadding(); // Define bottom padding of the body
 }
 
+// Detects when the user click on the chevron icon of the transfers view
 function onImgChevronClick() {
-    var imgChevronCollapse = $("#imgChevronCollapse");
-    if (imgChevronCollapse.hasClass("fa-chevron-down")) {
-        imgChevronCollapse.removeClass("fa-chevron-down");
+    var imgChevronCollapse = $("#imgChevronCollapse"); // Get icon with jQuery
+    // Change the class to display an up or a down chevron (up when view is collapsed)
+    if (imgChevronCollapse.hasClass("fa-chevron-down")) { 
+        imgChevronCollapse.removeClass("fa-chevron-down"); 
         imgChevronCollapse.addClass("fa-chevron-up");
     }
     else if (imgChevronCollapse.hasClass("fa-chevron-up")) {
@@ -32,12 +36,14 @@ function onImgChevronClick() {
     }
 }
 
-fileTransfersView.on("hidden.bs.collapse", function() {
-    if (scope.page == 'browse')
+// When the view is collapsed
+fileTransfersView.on("hidden.bs.collapse", function () {
+    if (scope.page != 'upload')
         scope.defineBodyPadding();
 });
 
-fileTransfersView.on("shown.bs.collapse", function() {
-    if (scope.page == 'browse')
+// When the view is shown
+fileTransfersView.on("shown.bs.collapse", function () {
+    if (scope.page != 'upload')
         scope.defineBodyPadding();
 });
