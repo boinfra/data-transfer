@@ -28,6 +28,10 @@ table.borderless tbody td, table.borderless tbody th {
 	border: none;
 }
 
+tbody.tableBody {
+	text-align: left
+}
+
 .droppingZone {
 	border-style: dashed;
 	border-radius: 15px;

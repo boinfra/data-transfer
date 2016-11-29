@@ -27,13 +27,12 @@ angular.module("data-transfer")
 							divCount++;
 						}
 						var newTrans = {
-							name: file.name,
+							name: entry.fullPath,
 							content: e.target.result,
 							size: file.size,
 							displaySize: size + (divCount == 2 ? " MB" : divCount == 1 ? " KB" : " B"),
 							transferType: "Upload",
 							status: "Queued",
-							fullPath: entry.fullPath,
 							hash: CryptoJS.MD5(entry.fullPath + e.target.result)
 						};
 						var fileAlreadyDropped = false;
