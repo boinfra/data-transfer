@@ -35,7 +35,7 @@
 						ng-show="transfer.transferType=='Upload' || page=='browse'">
 						<td><i class="fa fa-square-o fa-lg"></i></td>
 						<td>{{transfer.name}}</td>
-						<td>{{transfer.size}}</td>
+						<td>{{transfer.displaySize}}</td>
 						<td>
 							<i class="fa fa-lg" ng-class="{true:'fa-arrow-circle-o-up', false:'fa-arrow-circle-o-down'}
 							[transfer.transferType=='Upload']"></i> {{transfer.transferType}}

@@ -1,30 +1,12 @@
 var readFile;
 var transfersScope = null;
 var scanDirectory;
-var chrome;
 
 angular.module("data-transfer")
 
 	.controller("DropController", function () {
-		// Cross browser support
-		var isChromium = window.chrome,
-			winNav = window.navigator,
-			vendorName = winNav.vendor,
-			isOpera = winNav.userAgent.indexOf("OPR") > -1,
-			isIEedge = winNav.userAgent.indexOf("Edge") > -1,
-			isIOSChrome = winNav.userAgent.match("CriOS"),
-			message = document.getElementById("dropMessage");
-
-		if (isIOSChrome) {
-			message.innerHTML = "Drag n'drop your files or folders here";
-			chrome = true;
-		} else if (isChromium !== null && isChromium !== undefined && vendorName === "Google Inc." && isIEedge == false) {
-			message.innerHTML = "Drag n'drop your files or folders here";
-			chrome = true;
-		} else {
-			message.innerHTML = "Drag n'drop your files here";
-			chrome = false;
-		}
+		var chrome = isChrome();
+		console.debug(chrome);
 
 		// Drop		
 		var files = [];
@@ -47,12 +29,25 @@ angular.module("data-transfer")
 						var newTrans = {
 							name: file.name,
 							content: e.target.result,
-							size: size + (divCount == 2 ? " MB" : divCount == 1 ? " KB" : " B"),
+							size: file.size,
+							displaySize: size + (divCount == 2 ? " MB" : divCount == 1 ? " KB" : " B"),
 							transferType: "Upload",
-							status: "Queued"
+							status: "Queued",
+							fullPath: entry.fullPath,
+							hash: CryptoJS.MD5(entry.fullPath + e.target.result)
 						};
-						transfersScope.pushTransfer(newTrans);
-						filesCount++;
+						var fileAlreadyDropped = false;
+						for (var i = 0; i < transfersScope.transfers.length; i++) {
+							if (transfersScope.transfers[i].hash.toString() == newTrans.hash.toString()) {
+								fileAlreadyDropped = true;
+								alert('The following file has already been dropped: "' + file.name + '"');
+								i = transfersScope.transfers.length;
+							}
+						}
+						if (!fileAlreadyDropped) {
+							transfersScope.pushTransfer(newTrans);
+							filesCount++;
+						}
 					};
 				});
 			} : function (file) {
@@ -70,12 +65,24 @@ angular.module("data-transfer")
 					var newTrans = {
 						name: file.name,
 						content: e.target.result,
-						size: size + (divCount == 2 ? " MB" : divCount == 1 ? " KB" : " B"),
+						size: file.size,
+						displaySize: size + (divCount == 2 ? " MB" : divCount == 1 ? " KB" : " B"),
 						transferType: "Upload",
-						status: "Queued"
+						status: "Queued",
+						hash: CryptoJS.MD5(file.name + e.target.result)
 					};
-					transfersScope.pushTransfer(newTrans);
-					filesCount++;
+					var fileAlreadyDropped = false;
+					for (var i = 0; i < transfersScope.transfers.length; i++) {
+						if (transfersScope.transfers[i].hash.toString() == newTrans.hash.toString()) {
+							fileAlreadyDropped = true;
+							alert('The following file has already been dropped: "' + file.name + '"');
+							i = transfersScope.transfers.length;
+						}
+					}
+					if (!fileAlreadyDropped) {
+						transfersScope.pushTransfer(newTrans);
+						filesCount++;
+					}
 				};
 			};
 
