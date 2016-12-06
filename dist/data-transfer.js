@@ -101,7 +101,7 @@ angular.module('data-transfer')
 ;
 angular.module('data-transfer')
 
-.controller('dropController', ['$scope', 'browserDetectionService', function($scope, browserDetectionService){
+.controller('dropController', ['$scope', '$rootScope', 'browserDetectionService', function($scope, $rootScope, browserDetectionService){
 	var isChrome = browserDetectionService.isChrome();
 	if(isChrome){
 		document.getElementById("dropMessage").innerHTML = "Drag n'drop your files or folders here";
@@ -164,18 +164,20 @@ angular.module('data-transfer')
 						status: "Queued", // Status (Queued at the beginning, changes during upload and at the end of upload)
 						hash: CryptoJS.MD5(entry.name + e.target.result) // Hash of the file (used to compare files together)
 					};
-					/*var fileAlreadyDropped = false; // Indicates if a file has already been dropped
-					for (var i = 0; i < transfersScope.transfers.length | fileAlreadyDropped; i++) { // Going through all files (already dropped)
-							fileAlreadyDropped = transfersScope.transfers[i].hash.toString() == newTrans.hash.toString(); 
-							if(fileAlreadyDropped)
-								alert('The following file has already been dropped: "' + file.name + '"'); // Pop-up a message which tells the user he's trying to upload a file that has already been dropped
-						}
-					};*/
-					/*if (!fileAlreadyDropped) { // If the file isn't already dropped
-						transfersScope.pushTransfer(newTrans); // Push it into transfers list
-						// POST here
-						
-					}*/
+					var fileAlreadyDropped = false; // Indicates if a file has already been dropped
+					for (var i = 0; i < $rootScope.transfers.length | fileAlreadyDropped; i++) { // Going through all files (already dropped)
+						fileAlreadyDropped = $rootScope.transfers[i].hash.toString() == newTrans.hash.toString();
+						if(fileAlreadyDropped)
+							alert('The following file has already been dropped: "' + file.name + '"'); // Pop-up a message which tells the user he's trying to upload a file that has already been dropped
+					}
+					if (!fileAlreadyDropped) { // If the file isn't already dropped
+						$rootScope.transfers.push(newTrans); // Pushing into array
+						console.debug($rootScope.transfers);
+						$("#fileTransfersView").scope().changePage(1);
+						/*$scope.$apply(function () { // Applying changes
+							$scope.changePage(currentPage); // Change displayed transfers (by changing page)
+						});*/
+					}
 				};
 			});
 		}
@@ -229,56 +231,7 @@ angular.module('data-transfer')
 	$scope.displayedTransfers = [];
 	$scope.page = '';
 	$scope.pageCount = 0;
-	$rootScope.transfers = [
-					{
-						"name": "DICOM_patientXY_1.dcm",
-						"size": "1.5 MB",
-						"transferType": "Upload",
-						"status": "Queued"
-					},
-					{
-						"name": "DICOM_patientXY_2.dcm",
-						"size": "1.7 MB",
-						"transferType": "Upload",
-						"status": "Queued"
-					},
-					{
-						"name": "VSD.Thorax.089Y.M.CT.7.000.dcm.zip",
-						"size": "2 GB",
-						"transferType": "Download",
-						"status": "Queued"
-					},
-					{
-						"name": "NIFTI_patientXY.nii",
-						"size": "1.2 MB",
-						"transferType": "Upload",
-						"status": "Queued"
-					},
-					{
-						"name": "DICOM_patientXY_1.dcm",
-						"size": "1.5 MB",
-						"transferType": "Upload",
-						"status": "Queued"
-					},
-					{
-						"name": "DICOM_patientXY_2.dcm",
-						"size": "1.7 MB",
-						"transferType": "Upload",
-						"status": "Queued"
-					},
-					{
-						"name": "VSD.Thorax.089Y.M.CT.7.000.dcm.zip",
-						"size": "2 GB",
-						"transferType": "Download",
-						"status": "Queued"
-					},
-					{
-						"name": "NIFTI_patientXY.nii",
-						"size": "1.2 MB",
-						"transferType": "Upload",
-						"status": "Queued"
-					}
-				];
+	$rootScope.transfers = [];
 
 	// Function that changes the page of the table (by changing displayed transfers)
 	// num: number of the page to display

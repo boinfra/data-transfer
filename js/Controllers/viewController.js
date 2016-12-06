@@ -4,56 +4,7 @@ angular.module('data-transfer')
 	$scope.displayedTransfers = [];
 	$scope.page = '';
 	$scope.pageCount = 0;
-	$rootScope.transfers = [
-					{
-						"name": "DICOM_patientXY_1.dcm",
-						"size": "1.5 MB",
-						"transferType": "Upload",
-						"status": "Queued"
-					},
-					{
-						"name": "DICOM_patientXY_2.dcm",
-						"size": "1.7 MB",
-						"transferType": "Upload",
-						"status": "Queued"
-					},
-					{
-						"name": "VSD.Thorax.089Y.M.CT.7.000.dcm.zip",
-						"size": "2 GB",
-						"transferType": "Download",
-						"status": "Queued"
-					},
-					{
-						"name": "NIFTI_patientXY.nii",
-						"size": "1.2 MB",
-						"transferType": "Upload",
-						"status": "Queued"
-					},
-					{
-						"name": "DICOM_patientXY_1.dcm",
-						"size": "1.5 MB",
-						"transferType": "Upload",
-						"status": "Queued"
-					},
-					{
-						"name": "DICOM_patientXY_2.dcm",
-						"size": "1.7 MB",
-						"transferType": "Upload",
-						"status": "Queued"
-					},
-					{
-						"name": "VSD.Thorax.089Y.M.CT.7.000.dcm.zip",
-						"size": "2 GB",
-						"transferType": "Download",
-						"status": "Queued"
-					},
-					{
-						"name": "NIFTI_patientXY.nii",
-						"size": "1.2 MB",
-						"transferType": "Upload",
-						"status": "Queued"
-					}
-				];
+	$rootScope.transfers = [];
 
 	// Function that changes the page of the table (by changing displayed transfers)
 	// num: number of the page to display
