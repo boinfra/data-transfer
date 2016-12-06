@@ -1,0 +1,1 @@
+angular.module('data-transfer', ['ngResource']); // Creation of the main module of the framework
