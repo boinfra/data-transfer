@@ -5,6 +5,7 @@ angular.module('data-transfer')
 	return{
 		uploadFile: function(file){
 			console.debug("Upload file");
+			console.debug(file);
 		}
 	};
 });

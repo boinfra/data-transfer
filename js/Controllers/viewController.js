@@ -1,25 +1,28 @@
 angular.module('data-transfer')
 
-.controller('viewController', ['$scope', '$rootScope', 'configService', function($scope, $rootScope, configService){
+.controller('viewController', ['$scope', 'configService', 'transfersService', function($scope, configService, transfersService){
 	$scope.displayedTransfers = [];
 	$scope.page = '';
 	$scope.pageCount = 0;
-	$rootScope.transfers = [];
+	$scope.currentPage = 1;
 
 	// Function that changes the page of the table (by changing displayed transfers)
 	// num: number of the page to display
 	$scope.changePage = function (num) {
-		currentPage = num; // Change currentPage
+		if(num !== 0)
+			currentPage = num; // Change currentPage
 		$scope.displayedTransfers = []; // Flushing displayed transfers array
 		var displayedQty = configService.getDisplayedTransfersQty();
+		var transfers = transfersService.getTransfers();
 		// Loop that adds the correct number of transfers into the displayedTransfers array
-		for (var i = 0, trans = (num - 1) * 5; i < displayedQty; i++ , trans++) {
-			if ($rootScope.transfers[trans] !== undefined) // If the current transfer exist
-			if ($scope.page != 'upload' || $rootScope.transfers[trans].transferType == 'Upload') { // Check conditions to display current transfer (page different than "upload" or transfer type is "Upload")
-				$scope.displayedTransfers.push($rootScope.transfers[trans]); // Affect the current displayedTransfer
-			}
-			else { // If transfer shouldn't be displayed
-				i--; // Decrement i. It has for effect to stay at the same index in the display array
+		for (var i = 0, trans = (currentPage - 1) * 5; i < displayedQty; i++ , trans++) {
+			if (transfers[trans] !== undefined) { // If the current transfer exist
+				if ($scope.page != 'upload' || transfers[trans].transferType == 'Upload') { // Check conditions to display current transfer (page different than "upload" or transfer type is "Upload")
+					$scope.displayedTransfers.push(transfers[trans]); // Affect the current displayedTransfer
+				}
+				else { // If transfer shouldn't be displayed
+					i--; // Decrement i. It has for effect to stay at the same index in the display array
+				}
 			}
 			else // If the transfer doesn't exisit
 				i = displayedQty; // Go out of the loop
@@ -28,7 +31,7 @@ angular.module('data-transfer')
 	
 	$scope.definePagination = function(){
 		var displayedQty = configService.getDisplayedTransfersQty();
-		$scope.pageCount = ($rootScope.transfers.length / displayedQty) + 1; // Calculate number of pages from number of transfers to display
+		$scope.pageCount = (transfersService.getTransfers().length / displayedQty) + 1; // Calculate number of pages from number of transfers to display
 		// init bootpag
 		$('#page-selection').bootpag({
 			total: $scope.pageCount,

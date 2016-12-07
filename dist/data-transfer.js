@@ -63,6 +63,7 @@ angular.module('data-transfer')
 	return{
 		uploadFile: function(file){
 			console.debug("Upload file");
+			console.debug(file);
 		}
 	};
 });
@@ -93,6 +94,22 @@ angular.module('data-transfer')
 ;
 angular.module('data-transfer')
 
+.factory('transfersService', ['serviceFactory', function(serviceFactory){
+	var service = serviceFactory.getService('mock');
+	var transfers = [];
+
+	return {
+		pushTransfer: function(trans) {
+			transfers.push(trans);
+		},
+		getTransfers: function() {
+			return transfers;
+		}
+	};
+}]);
+;
+angular.module('data-transfer')
+
 .factory('uploadService', function(){
 	return{
 		toto: 'upload'
@@ -101,7 +118,7 @@ angular.module('data-transfer')
 ;
 angular.module('data-transfer')
 
-.controller('dropController', ['$scope', '$rootScope', 'browserDetectionService', function($scope, $rootScope, browserDetectionService){
+.controller('dropController', ['$scope', 'browserDetectionService', 'transfersService', function($scope, browserDetectionService, transfersService){
 	var isChrome = browserDetectionService.isChrome();
 	if(isChrome){
 		document.getElementById("dropMessage").innerHTML = "Drag n'drop your files or folders here";
@@ -127,7 +144,7 @@ angular.module('data-transfer')
 					$scope.readFile(entry); // Read it as text
 				}
 				else if (entry.isDirectory) { // If it's a directory
-					scanDirectory(entry); // Scan it
+					$scope.scanDirectory(entry); // Scan it
 				}
 			}
 		}
@@ -137,6 +154,22 @@ angular.module('data-transfer')
 				$scope.readFile(droppedFiles[filesCnt]);
 			}
 		}
+	};
+
+	// Function that scans the directory recursively, until it contains only files
+	$scope.scanDirectory = function (item) {
+		var directoryReader = item.createReader(); // A directory reader is needed to scan the directory
+
+		directoryReader.readEntries(function (entries) { // Read all entries of the directory (can be file or directory)
+			entries.forEach(function (entry) { // Go through all entries
+				if (entry.isDirectory) { // If it's a directory
+					$scope.scanDirectory(entry); // Scan it (recursion)
+				}
+				else if (entry.isFile) { // If it's a file
+					$scope.readFile(entry); // Read it as text
+				}
+			});
+		});
 	};
 
 	$scope.readFile = function(file){
@@ -165,18 +198,19 @@ angular.module('data-transfer')
 						hash: CryptoJS.MD5(entry.name + e.target.result) // Hash of the file (used to compare files together)
 					};
 					var fileAlreadyDropped = false; // Indicates if a file has already been dropped
-					for (var i = 0; i < $rootScope.transfers.length | fileAlreadyDropped; i++) { // Going through all files (already dropped)
-						fileAlreadyDropped = $rootScope.transfers[i].hash.toString() == newTrans.hash.toString();
-						if(fileAlreadyDropped)
+					for (var i = 0; i < transfersService.getTransfers().length; i++) { // Going through all files (already dropped)
+						fileAlreadyDropped = transfersService.getTransfers()[i].hash.toString() == newTrans.hash.toString();
+						if(fileAlreadyDropped) {
 							alert('The following file has already been dropped: "' + file.name + '"'); // Pop-up a message which tells the user he's trying to upload a file that has already been dropped
+							i = transfersService.getTransfers().length;
+						}
 					}
 					if (!fileAlreadyDropped) { // If the file isn't already dropped
-						$rootScope.transfers.push(newTrans); // Pushing into array
-						console.debug($rootScope.transfers);
-						$("#fileTransfersView").scope().changePage(1);
-						/*$scope.$apply(function () { // Applying changes
-							$scope.changePage(currentPage); // Change displayed transfers (by changing page)
-						});*/
+						transfersService.pushTransfer(newTrans); // Pushing into array
+						$scope.$apply(function () { // Applying changes
+							$("#fileTransfersView").scope().changePage(0); // Change displayed transfers (by changing page)
+							$("#fileTransfersView").scope().definePagination(); // Define and display the pagination
+						});
 					}
 				};
 			});
@@ -220,33 +254,29 @@ angular.module('data-transfer')
 ;
 angular.module('data-transfer')
 
-.controller('transfersController', ['serviceFactory', function(serviceFactory){
-	var service = serviceFactory.getService('mock');
-	
-}]);
-;
-angular.module('data-transfer')
-
-.controller('viewController', ['$scope', '$rootScope', 'configService', function($scope, $rootScope, configService){
+.controller('viewController', ['$scope', 'configService', 'transfersService', function($scope, configService, transfersService){
 	$scope.displayedTransfers = [];
 	$scope.page = '';
 	$scope.pageCount = 0;
-	$rootScope.transfers = [];
+	$scope.currentPage = 1;
 
 	// Function that changes the page of the table (by changing displayed transfers)
 	// num: number of the page to display
 	$scope.changePage = function (num) {
-		currentPage = num; // Change currentPage
+		if(num !== 0)
+			currentPage = num; // Change currentPage
 		$scope.displayedTransfers = []; // Flushing displayed transfers array
 		var displayedQty = configService.getDisplayedTransfersQty();
+		var transfers = transfersService.getTransfers();
 		// Loop that adds the correct number of transfers into the displayedTransfers array
-		for (var i = 0, trans = (num - 1) * 5; i < displayedQty; i++ , trans++) {
-			if ($rootScope.transfers[trans] !== undefined) // If the current transfer exist
-			if ($scope.page != 'upload' || $rootScope.transfers[trans].transferType == 'Upload') { // Check conditions to display current transfer (page different than "upload" or transfer type is "Upload")
-				$scope.displayedTransfers.push($rootScope.transfers[trans]); // Affect the current displayedTransfer
-			}
-			else { // If transfer shouldn't be displayed
-				i--; // Decrement i. It has for effect to stay at the same index in the display array
+		for (var i = 0, trans = (currentPage - 1) * 5; i < displayedQty; i++ , trans++) {
+			if (transfers[trans] !== undefined) { // If the current transfer exist
+				if ($scope.page != 'upload' || transfers[trans].transferType == 'Upload') { // Check conditions to display current transfer (page different than "upload" or transfer type is "Upload")
+					$scope.displayedTransfers.push(transfers[trans]); // Affect the current displayedTransfer
+				}
+				else { // If transfer shouldn't be displayed
+					i--; // Decrement i. It has for effect to stay at the same index in the display array
+				}
 			}
 			else // If the transfer doesn't exisit
 				i = displayedQty; // Go out of the loop
@@ -255,7 +285,7 @@ angular.module('data-transfer')
 	
 	$scope.definePagination = function(){
 		var displayedQty = configService.getDisplayedTransfersQty();
-		$scope.pageCount = ($rootScope.transfers.length / displayedQty) + 1; // Calculate number of pages from number of transfers to display
+		$scope.pageCount = (transfersService.getTransfers().length / displayedQty) + 1; // Calculate number of pages from number of transfers to display
 		// init bootpag
 		$('#page-selection').bootpag({
 			total: $scope.pageCount,
