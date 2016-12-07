@@ -118,17 +118,21 @@ angular.module('data-transfer')
 					status: "Queued", // Status (Queued at the beginning, changes during upload and at the end of upload)
 					hash: CryptoJS.MD5(file.name + e.target.result) // Hash of the file (used to compare files together)
 				};
-				/*var fileAlreadyDropped = false; // Indicates if a file has already been dropped
-				for (var i = 0; i < transfersScope.transfers.length; i++) { // Going through all files (already dropped)
-					if (transfersScope.transfers[i].hash.toString() == newTrans.hash.toString()) { // If the file hash is the same as the hash of the file that has already been dropped
-						fileAlreadyDropped = true; // This file has already been dropped, so don't transfer it
+				var fileAlreadyDropped = false; // Indicates if a file has already been dropped
+				for (var i = 0; i < transfersService.getTransfers().length; i++) { // Going through all files (already dropped)
+					fileAlreadyDropped = transfersService.getTransfers()[i].hash.toString() == newTrans.hash.toString();
+					if(fileAlreadyDropped) {
 						alert('The following file has already been dropped: "' + file.name + '"'); // Pop-up a message which tells the user he's trying to upload a file that has already been dropped
-						i = transfersScope.transfers.length; // Out of the loop
+						i = transfersService.getTransfers().length;
 					}
 				}
-				if (!fileAlreadyDropped) { // If the file isn't dropped yet
-					transfersScope.pushTransfer(newTrans); // Push it into transfers list
-				}*/
+				if (!fileAlreadyDropped) { // If the file isn't already dropped
+					transfersService.pushTransfer(newTrans); // Pushing into array
+					$scope.$apply(function () { // Applying changes
+						$("#fileTransfersView").scope().changePage(0); // Change displayed transfers (by changing page)
+						$("#fileTransfersView").scope().definePagination(); // Define and display the pagination
+					});
+				}
 			};
 		}
 	};
