@@ -1,7 +1,7 @@
-<link rel="stylesheet" href="/dataTransfer/css/dataTransfer.css"/>
+<link rel="stylesheet" href="/dataTransfer/css/dataTransfer.css" />
 
-<div class="fileTransfersView" ng-class="{'pull-bottom': page != 'upload'}" id="fileTransfersView" 
-	ng-controller="viewController" ng-init="page=pageName">
+<div class="fileTransfersView" ng-class="{'pull-bottom': page != 'upload'}" id="fileTransfersView" ng-controller="viewController"
+	ng-init="page=pageName">
 	<div class="fileTransfersViewHeader" ng-show="page!='upload'">
 		<p>
 			<i class="fa fa-arrow-circle-o-up fa-lg"></i>
@@ -31,8 +31,7 @@
 					</tr>
 				</thead>
 				<tbody id="tableBody" class="tableBody">
-					<tr ng-repeat="transfer in displayedTransfers" on-finish-render="ngRepeatFinished" 
-						ng-show="transfer.transferType=='Upload' || page!='upload'">
+					<tr ng-repeat="transfer in displayedTransfers" on-finish-render="ngRepeatFinished" ng-show="transfer.transferType=='Upload' || page!='upload'">
 						<td><i class="fa fa-square-o fa-lg"></i></td>
 						<td>{{transfer.name}}</td>
 						<td>{{transfer.displaySize}}</td>
@@ -40,7 +39,15 @@
 							<i class="fa fa-lg" ng-class="{true:'fa-arrow-circle-o-up', false:'fa-arrow-circle-o-down'}
 							[transfer.transferType=='Upload']"></i> {{transfer.transferType}}
 						</td>
-						<td><i class="fa" ng-class="{'Failed': 'fa-warning', 'Queued': 'fa-hourglass', 'Pending': 'fa-spinner fa-spin', 'Succeeded': 'fa-check'} [transfer.status]"></i> {{transfer.status}}</td>
+						<td ng-show="transfer.status == 'Failed' || transfer.status == 'Succeeded' || transfer.status == 'Queued'">
+							<i class="fa" ng-class="{'Failed': 'fa-warning', 'Queued': 'fa-hourglass', 'Succeeded': 'fa-check'} [transfer.status]"></i>{{transfer.status}}
+						</td>
+						<td ng-hide="transfer.status == 'Failed' || transfer.status == 'Succeeded' || transfer.status == 'Queued'">
+							<div class="progress">
+								<div class="progress-bar" role="progressbar" aria-valuenow="{{transfer.status}}" aria-valuemin="0" aria-valuemax="100" style="width:{{transfer.status}}%">
+								</div>
+							</div>
+						</td>
 						<td>{{transfer.speed}}</td>
 						<td>{{transfer.elapsedTime}}</td>
 						<td>{{transfer.remainingTime}}</td>
