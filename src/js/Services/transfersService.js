@@ -24,10 +24,13 @@ angular.module('data-transfer')
 				if (trans.status == 'Queued')
 					run(trans, index);
 				else if (trans.status == 'Paused')
-					service.restart(index);
+					service.resume(index);
 			},
 			pause: function (index) {
 				service.pause(index);
+			},
+			stop: function(index) {
+				service.stop(index);
 			}
 		};
 	}]);

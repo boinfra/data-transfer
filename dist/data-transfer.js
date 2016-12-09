@@ -63,6 +63,12 @@ angular.module('data-transfer')
 		var pauseFiles = [];
 		return {
 			uploadFile: function (file, index) {
+				if (pauseFiles.length > index) {
+					pauseFiles[index] = false;
+				}
+				else {
+					pauseFiles.push(false);
+				}
 				var prog = 0;
 				var time = 0;
 				var complete = false;
@@ -70,26 +76,34 @@ angular.module('data-transfer')
 				var timeout;
 				var finishedSent = false;
 				var message;
-				pauseFiles.push(false);
 
 				var progress = $.Event('progress');
 				var finished = $.Event('complete');
 
 				function intervalTrigger() {
 					setInterval(function () {
-
-						if (!pauseFiles[index]) {
-							time += 100;
-							prog = (time / timeout) * 100;
-							progress.prog = prog;
-							progress.state = 'Pending';
+						if (pauseFiles[index] === undefined) {
+							progress.state = 'Queued';
+							time = 0;
+							progress.prog = 0;
 							progress.file = file;
 							progress.elapsedTime = time / 1000 + ' s';
-							complete = time > timeout;
 							progress.remainingTime = (timeout - time) / 1000 + ' s';
 						}
-						else
-							progress.state = 'Paused';
+						else {
+							if (!pauseFiles[index]) {
+								time += 100;
+								prog = (time / timeout) * 100;
+								progress.prog = prog;
+								progress.state = 'Pending';
+								progress.file = file;
+								progress.elapsedTime = time / 1000 + ' s';
+								complete = time > timeout;
+								progress.remainingTime = (timeout - time) / 1000 + ' s';
+							}
+							else
+								progress.state = 'Paused';
+						}
 						if (!complete) {
 							$(window).trigger(progress);
 						}
@@ -119,8 +133,11 @@ angular.module('data-transfer')
 			pause: function (index) {
 				pauseFiles[index] = true;
 			},
-			restart: function (index) {
+			resume: function (index) {
 				pauseFiles[index] = false;
+			},
+			stop: function (index) {
+				pauseFiles[index] = undefined;
 			}
 		};
 	}]);
@@ -175,10 +192,13 @@ angular.module('data-transfer')
 				if (trans.status == 'Queued')
 					run(trans, index);
 				else if (trans.status == 'Paused')
-					service.restart(index);
+					service.resume(index);
 			},
 			pause: function (index) {
 				service.pause(index);
+			},
+			stop: function(index) {
+				service.stop(index);
 			}
 		};
 	}]);
@@ -374,6 +394,10 @@ angular.module('data-transfer')
 
 		$scope.pause = function(index) {
 			transfersService.pause(index);
+		};
+
+		$scope.stop = function(index){
+			transfersService.stop(index);
 		};
 
 		// Function that changes the page of the table (by changing displayed transfers)
