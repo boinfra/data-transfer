@@ -31,7 +31,7 @@ angular.module('data-transfer')
 angular.module('data-transfer')
 
 	.factory('configService', function(){
-		var autoStart = true, // If the upload should start automatically
+		var autoStart = false, // If the upload should start automatically
 			autoRetriesQty = 3, // Number of times the upload should be automatically retried after fail
 			concurentTransfersQty = 1, // Number of concurent transfers
 			apiEndpointURL = 'http://demo.virtualskeleton.ch/api/upload', // URL of the endpoint that uploads files in the used API
@@ -137,25 +137,33 @@ angular.module('data-transfer')
 		var service = serviceFactory.getService('mock');
 		var transfers = [];
 
+		function run(trans) {
+			trans.status = 'Pending';
+			service.uploadFile(trans).then(function (status) {
+				switch (status) {
+					case 'success':
+						trans.status = 'Succeeded';
+						break;
+					case 'error':
+						trans.status = 'Failed';
+						break;
+				}
+			});
+		}
+
 		return {
 			pushTransfer: function (trans) {
 				transfers.push(trans);
-				trans.status = 'Pending';
 				if (configService.getAutoStart()) {
-					service.uploadFile(trans).then(function (status) {
-						switch(status){
-							case 'success':
-								trans.status = 'Succeeded';
-								break;
-							case 'error':
-								trans.status = 'Failed';
-								break;
-						}
-					 });
+					run(trans);
 				}
 			},
 			getTransfers: function () {
 				return transfers;
+			},
+			start: function(index) {
+				var trans = transfers[index];
+				run(trans);
 			}
 		};
 	}]);
@@ -332,6 +340,10 @@ angular.module('data-transfer')
 				}
 			}
 		});
+
+		$scope.start = function(index) {
+			transfersService.start(index);
+		};
 
 		// Function that changes the page of the table (by changing displayed transfers)
 		// num: number of the page to display

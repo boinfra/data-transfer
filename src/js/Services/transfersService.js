@@ -4,25 +4,33 @@ angular.module('data-transfer')
 		var service = serviceFactory.getService('mock');
 		var transfers = [];
 
+		function run(trans) {
+			trans.status = 'Pending';
+			service.uploadFile(trans).then(function (status) {
+				switch (status) {
+					case 'success':
+						trans.status = 'Succeeded';
+						break;
+					case 'error':
+						trans.status = 'Failed';
+						break;
+				}
+			});
+		}
+
 		return {
 			pushTransfer: function (trans) {
 				transfers.push(trans);
-				trans.status = 'Pending';
 				if (configService.getAutoStart()) {
-					service.uploadFile(trans).then(function (status) {
-						switch(status){
-							case 'success':
-								trans.status = 'Succeeded';
-								break;
-							case 'error':
-								trans.status = 'Failed';
-								break;
-						}
-					 });
+					run(trans);
 				}
 			},
 			getTransfers: function () {
 				return transfers;
+			},
+			start: function(index) {
+				var trans = transfers[index];
+				run(trans);
 			}
 		};
 	}]);

@@ -19,6 +19,10 @@ angular.module('data-transfer')
 			}
 		});
 
+		$scope.start = function(index) {
+			transfersService.start(index);
+		};
+
 		// Function that changes the page of the table (by changing displayed transfers)
 		// num: number of the page to display
 		$scope.changePage = function (num) {
