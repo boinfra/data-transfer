@@ -2,49 +2,67 @@ angular.module('data-transfer')
 
 	.factory('mockService', ['$timeout', function ($timeout) {
 		var acceptedExtensions = ['*'];
+		var pauseFiles = [];
 		return {
-			uploadFile: function (file) {
-				var state = 0;
+			uploadFile: function (file, index) {
+				var prog = 0;
 				var time = 0;
 				var complete = false;
 				var returnValue;
 				var timeout;
+				var finishedSent = false;
 				var message;
+				pauseFiles.push(false);
 
-				var evt = $.Event('progress');
+				var progress = $.Event('progress');
+				var finished = $.Event('complete');
 
 				function intervalTrigger() {
 					setInterval(function () {
-						time += 100;
-						state = (time / timeout) * 100;
-						evt.state = state;
-						evt.file = file;
-						evt.elapsedTime = time/1000 + ' s';
-						evt.remainingTime = (timeout - time)/1000 + ' s';
-						complete = state > 100;
+
+						if (!pauseFiles[index]) {
+							time += 100;
+							prog = (time / timeout) * 100;
+							progress.prog = prog;
+							progress.state = 'Pending';
+							progress.file = file;
+							progress.elapsedTime = time / 1000 + ' s';
+							complete = time > timeout;
+							progress.remainingTime = (timeout - time) / 1000 + ' s';
+						}
+						else
+							progress.state = 'Paused';
 						if (!complete) {
-							$(window).trigger(evt);
+							$(window).trigger(progress);
+						}
+						else if (!finishedSent) {
+							finished.state = message == 'success' ? 'Succeeded' : 'Failed';
+							finished.file = file;
+							$(window).trigger(finished);
+							finishedSent = true;
 						}
 					}, 100);
 				}
 				var interval = intervalTrigger();
 
-				if (state > 100) {
-					window.clearInterval(interval);
-				}
-
 				if (file.name.indexOf('success') !== -1) {
 					timeout = 2000;
 					message = 'success';
 				}
-				if (file.name.indexOf('error') !== -1) {
+				else if (file.name.indexOf('error') !== -1) {
 					timeout = 3000;
 					message = 'error';
 				}
-
-				return $timeout(function () {
-					return message;
-				}, timeout);
+				else {
+					timeout = 5000;
+					message = 'error';
+				}
+			},
+			pause: function (index) {
+				pauseFiles[index] = true;
+			},
+			restart: function (index) {
+				pauseFiles[index] = false;
 			}
 		};
 	}]);

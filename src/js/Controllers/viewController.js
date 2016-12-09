@@ -11,6 +11,7 @@ angular.module('data-transfer')
 				var currentTransfer = $scope.displayedTransfers[i];
 				if (currentTransfer === e.file) {
 					currentTransfer.status = e.state;
+					currentTransfer.prog = e.prog;
 					currentTransfer.elapsedTime = e.elapsedTime;
 					currentTransfer.remainingTime = e.remainingTime;
 					$scope.$apply();
@@ -19,8 +20,23 @@ angular.module('data-transfer')
 			}
 		});
 
+		$(window).on('complete', function (e) {
+			for (var i = 0; i < configService.getDisplayedTransfersQty(); i++) {
+				var currentTransfer = $scope.displayedTransfers[i];
+				if (currentTransfer === e.file) {
+					currentTransfer.status = e.state;
+					$scope.$apply();
+					i = configService.getDisplayedTransfersQty();
+				}
+			}
+		});
+
 		$scope.start = function(index) {
 			transfersService.start(index);
+		};
+
+		$scope.pause = function(index) {
+			transfersService.pause(index);
 		};
 
 		// Function that changes the page of the table (by changing displayed transfers)

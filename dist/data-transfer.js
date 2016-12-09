@@ -60,49 +60,67 @@ angular.module('data-transfer')
 
 	.factory('mockService', ['$timeout', function ($timeout) {
 		var acceptedExtensions = ['*'];
+		var pauseFiles = [];
 		return {
-			uploadFile: function (file) {
-				var state = 0;
+			uploadFile: function (file, index) {
+				var prog = 0;
 				var time = 0;
 				var complete = false;
 				var returnValue;
 				var timeout;
+				var finishedSent = false;
 				var message;
+				pauseFiles.push(false);
 
-				var evt = $.Event('progress');
+				var progress = $.Event('progress');
+				var finished = $.Event('complete');
 
 				function intervalTrigger() {
 					setInterval(function () {
-						time += 100;
-						state = (time / timeout) * 100;
-						evt.state = state;
-						evt.file = file;
-						evt.elapsedTime = time/1000 + ' s';
-						evt.remainingTime = (timeout - time)/1000 + ' s';
-						complete = state > 100;
+
+						if (!pauseFiles[index]) {
+							time += 100;
+							prog = (time / timeout) * 100;
+							progress.prog = prog;
+							progress.state = 'Pending';
+							progress.file = file;
+							progress.elapsedTime = time / 1000 + ' s';
+							complete = time > timeout;
+							progress.remainingTime = (timeout - time) / 1000 + ' s';
+						}
+						else
+							progress.state = 'Paused';
 						if (!complete) {
-							$(window).trigger(evt);
+							$(window).trigger(progress);
+						}
+						else if (!finishedSent) {
+							finished.state = message == 'success' ? 'Succeeded' : 'Failed';
+							finished.file = file;
+							$(window).trigger(finished);
+							finishedSent = true;
 						}
 					}, 100);
 				}
 				var interval = intervalTrigger();
 
-				if (state > 100) {
-					window.clearInterval(interval);
-				}
-
 				if (file.name.indexOf('success') !== -1) {
 					timeout = 2000;
 					message = 'success';
 				}
-				if (file.name.indexOf('error') !== -1) {
+				else if (file.name.indexOf('error') !== -1) {
 					timeout = 3000;
 					message = 'error';
 				}
-
-				return $timeout(function () {
-					return message;
-				}, timeout);
+				else {
+					timeout = 5000;
+					message = 'error';
+				}
+			},
+			pause: function (index) {
+				pauseFiles[index] = true;
+			},
+			restart: function (index) {
+				pauseFiles[index] = false;
 			}
 		};
 	}]);
@@ -137,33 +155,30 @@ angular.module('data-transfer')
 		var service = serviceFactory.getService('mock');
 		var transfers = [];
 
-		function run(trans) {
+		function run(trans, index) {
 			trans.status = 'Pending';
-			service.uploadFile(trans).then(function (status) {
-				switch (status) {
-					case 'success':
-						trans.status = 'Succeeded';
-						break;
-					case 'error':
-						trans.status = 'Failed';
-						break;
-				}
-			});
+			service.uploadFile(trans, index);
 		}
 
 		return {
-			pushTransfer: function (trans) {
+			pushTransfer: function (trans, index) {
 				transfers.push(trans);
 				if (configService.getAutoStart()) {
-					run(trans);
+					run(trans, index);
 				}
 			},
 			getTransfers: function () {
 				return transfers;
 			},
-			start: function(index) {
+			start: function (index) {
 				var trans = transfers[index];
-				run(trans);
+				if (trans.status == 'Queued')
+					run(trans, index);
+				else if (trans.status == 'Paused')
+					service.restart(index);
+			},
+			pause: function (index) {
+				service.pause(index);
 			}
 		};
 	}]);
@@ -270,7 +285,7 @@ angular.module('data-transfer')
 							}
 						}
 						if (!fileAlreadyDropped) { // If the file isn't already dropped
-							transfersService.pushTransfer(newTrans); // Pushing into array
+							transfersService.pushTransfer(newTrans, transfersService.getTransfers().length); // Pushing into array
 							$scope.$apply(function () { // Applying changes
 								$("#fileTransfersView").scope().changePage(0); // Change displayed transfers (by changing page)
 								$("#fileTransfersView").scope().definePagination(); // Define and display the pagination
@@ -333,6 +348,7 @@ angular.module('data-transfer')
 				var currentTransfer = $scope.displayedTransfers[i];
 				if (currentTransfer === e.file) {
 					currentTransfer.status = e.state;
+					currentTransfer.prog = e.prog;
 					currentTransfer.elapsedTime = e.elapsedTime;
 					currentTransfer.remainingTime = e.remainingTime;
 					$scope.$apply();
@@ -341,8 +357,23 @@ angular.module('data-transfer')
 			}
 		});
 
+		$(window).on('complete', function (e) {
+			for (var i = 0; i < configService.getDisplayedTransfersQty(); i++) {
+				var currentTransfer = $scope.displayedTransfers[i];
+				if (currentTransfer === e.file) {
+					currentTransfer.status = e.state;
+					$scope.$apply();
+					i = configService.getDisplayedTransfersQty();
+				}
+			}
+		});
+
 		$scope.start = function(index) {
 			transfersService.start(index);
+		};
+
+		$scope.pause = function(index) {
+			transfersService.pause(index);
 		};
 
 		// Function that changes the page of the table (by changing displayed transfers)
