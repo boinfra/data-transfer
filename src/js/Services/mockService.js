@@ -1,7 +1,6 @@
 angular.module('data-transfer')
 
 	.factory('mockService', ['$timeout', function ($timeout) {
-		var acceptedExtensions = ['*'];
 		var pauseFiles = [];
 		return {
 			uploadFile: function (file, index) {
