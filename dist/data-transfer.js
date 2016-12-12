@@ -220,32 +220,25 @@ angular.module('data-transfer')
 				return transfers;
 			},
 			start: function (trans) {
-				// var currentTransfer = transfers[index];
-				// var trans = {};
-				// if (configService.getAutoStart()) {
-				// 	for (var i = 0; i < concurentTransfers; i++) {
-				// 		if (runningTransfers[i] === currentTransfer) {
-				// 			trans = runningTransfers[i];
-				// 		}
-				// 	}
-				// }
-				// else {
-				// 	if (runningTransfers.length < configService.getConcurentTransfersQty()) {
-				// 		trans = currentTransfer;
-				// 		runningTransfers.push(trans);
-				// 	}
-				// }
-				// if (trans.status == 'Queued')
-				// 	run(trans, index);
-				// else if (trans.status == 'Paused')
-				// 	service.resume(index);
-				/*if (!configService.getAutoStart()) {
-					runningTransfers.push(trans);
-				}*/
-				if (trans.status == 'Queued')
-					run(trans);
-				else if (trans.status == 'Paused')
-					service.resume(trans);
+				if (!configService.getAutoStart()) {
+					if (runningTransfers.length < concurentTransfers) {
+						runningTransfers.push(trans);
+						if (trans.status == 'Queued') {
+							run(trans);
+						}
+						else if (trans.status == 'Paused') {
+							service.resume(trans);
+						}
+					}
+				}
+				else {
+					if (trans.status == 'Queued') {
+						run(trans);
+					}
+					else if (trans.status == 'Paused') {
+						service.resume(trans);
+					}
+				}
 			},
 			pause: function (trans) {
 				service.pause(trans);

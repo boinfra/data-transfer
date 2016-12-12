@@ -1,5 +1,5 @@
 {
-    "autoStart": true,
+    "autoStart": false,
     "autoRetriesQty": 3,
     "concurentTransfersQty": 3,
     "apiEndpointURL": "http://localhost:8080/api/upload",
