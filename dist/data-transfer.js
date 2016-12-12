@@ -81,18 +81,27 @@ angular.module('data-transfer')
 				function intervalTrigger() {
 					setInterval(function () {
 						var index = transfers.indexOf(file);
-						if (transfers[index].status !== 'Paused') {
-							time += 100;
-							prog = (time / timeout) * 100;
-							progress.prog = prog;
-							progress.state = 'Pending';
-							progress.file = file;
-							progress.elapsedTime = time / 1000 + ' s';
-							complete = time > timeout;
-							progress.remainingTime = (timeout - time) / 1000 + ' s';
+						if (index !== -1) {
+							if (transfers[index].status === 'Queued') {
+								time = 0;
+								prog = (time / timeout) * 100;
+								progress.prog = prog;
+								progress.file = file;
+								progress.elapsedTime = time / 1000 + ' s';
+								complete = time > timeout;
+								progress.remainingTime = (timeout - time) / 1000 + ' s';
+							}
+							if (transfers[index].status === 'Pending') {
+								time += 100;
+								prog = (time / timeout) * 100;
+								progress.prog = prog;
+								progress.file = file;
+								progress.elapsedTime = time / 1000 + ' s';
+								complete = time > timeout;
+								progress.remainingTime = (timeout - time) / 1000 + ' s';
+							}
+							progress.state = transfers[index].status;
 						}
-						else
-							progress.state = 'Paused';
 						if (!complete) {
 							$(window).trigger(progress);
 						}
@@ -122,15 +131,14 @@ angular.module('data-transfer')
 			pause: function (trans) {
 				var index = transfers.indexOf(trans);
 				transfers[index].status = 'Paused';
-				console.debug('Pause', transfers);
 			},
 			resume: function (trans) {
-				console.debug('Resume');
-				trans.status = 'Pending';
+				var index = transfers.indexOf(trans);
+				transfers[index].status = 'Pending';
 			},
 			stop: function (trans) {
-				trans.status = 'Queued';
-				transfers.splice(transfers.indexof(trans), 1);
+				var index = transfers.indexOf(trans);
+				transfers[index].status = 'Queued';
 			}
 		};
 	}]);
