@@ -1,17 +1,15 @@
 angular.module('data-transfer')
 
 	.factory('configService', function () {
-		// var settings;
-		// $.getJSON('../settings.json', function (json) {
-		// 	settings = json;
-		// });
-		var settings = {
-			"autoStart": "true",
-			"autoRetriesQty": 3,
-			"concurentTransfersQty": 1,
-			"apiEndpointURL": "http://localhost:8080/api/upload",
-			"displayedTransfersQty": 5
-		};
+		var settings;
+		$.ajax({
+			url: '/dataTransfer/src/js/settings.json',
+			async: false,
+			dataType: 'json',
+			success: function (response) {
+				settings = response;
+			}
+		});
 
 		return {
 			getAutoStart: function () {
