@@ -32,16 +32,16 @@ angular.module('data-transfer')
 			}
 		});
 
-		$scope.start = function (index) {
-			transfersService.start(index);
+		$scope.start = function (trans) {
+			transfersService.start(trans);
 		};
 
-		$scope.pause = function (index) {
-			transfersService.pause(index);
+		$scope.pause = function (trans) {
+			transfersService.pause(trans);
 		};
 
-		$scope.stop = function (index) {
-			transfersService.stop(index);
+		$scope.stop = function (trans) {
+			transfersService.stop(trans);
 		};
 
 		// Function that changes the page of the table (by changing displayed transfers)

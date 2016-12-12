@@ -40,7 +40,7 @@
 							[transfer.transferType=='Upload']"></i> {{transfer.transferType}}
 						</td>
 						<td ng-hide="transfer.status == 'Pending'">
-							<i class="fa" ng-class="{'Failed': 'fa-warning', 'Queued': 'fa-hourglass', 'Succeeded': 'fa-check'} [transfer.status]"></i>{{transfer.status}}
+							<i class="fa" ng-class="{'Failed': 'fa-warning', 'Queued': 'fa-hourglass', 'Succeeded': 'fa-check'} [transfer.status]"></i> {{transfer.status}}
 						</td>
 						<td ng-show="transfer.status == 'Pending'">
 							<div class="progress" style="margin-bottom: 0">
@@ -52,9 +52,9 @@
 						<td>{{transfer.elapsedTime}}</td>
 						<td>{{transfer.remainingTime}}</td>
 						<td>
-							<i class="fa fa-play fa-lg" ng-click="start(transfer.id)" ng-show="transfer.status == 'Paused' || transfer.status == 'Queued'"></i>
-							<i class="fa fa-pause fa-lg" ng-click="pause(transfer.id)" ng-show="transfer.status == 'Pending'"></i>
-							<i class="fa fa-stop fa-lg" ng-click="stop(transfer.id)" ng-show="transfer.status == 'Pending' || transfer.status == 'Paused'"></i>
+							<i class="fa fa-play fa-lg" ng-click="start(transfer)" ng-show="transfer.status == 'Paused' || transfer.status == 'Queued'"></i>
+							<i class="fa fa-pause fa-lg" ng-click="pause(transfer)" ng-show="transfer.status == 'Pending'"></i>
+							<i class="fa fa-stop fa-lg" ng-click="stop(transfer)" ng-show="transfer.status == 'Pending' || transfer.status == 'Paused'"></i>
 						</td>
 					</tr>
 				</tbody>

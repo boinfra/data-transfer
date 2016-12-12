@@ -7,9 +7,9 @@ angular.module('data-transfer')
 		var concurentTransfers = configService.getConcurentTransfersQty();
 		var transfersCompleted = 0;
 
-		function run(trans, index) {
+		function run(trans) {
 			trans.status = 'Pending';
-			service.uploadFile(trans, index);
+			service.uploadFile(trans);
 		}
 
 		$(window).on('complete', function (e) {
@@ -26,8 +26,10 @@ angular.module('data-transfer')
 							}
 						}
 						runningTransfers.splice(position, 1);
-						runningTransfers.push(transfers[transfersCompleted + 2]);
-						run(transfers[transfersCompleted + 2], transfers[transfersCompleted + 2].id);
+						if (configService.getAutoStart()) {
+							runningTransfers.push(transfers[transfersCompleted + 2]);
+							run(transfers[transfersCompleted + 2], transfers[transfersCompleted + 2].id);
+						}
 						i = transfers.length;
 					}
 				}
@@ -38,34 +40,49 @@ angular.module('data-transfer')
 			pushTransfer: function (trans, index) {
 				trans.id = index;
 				transfers.push(trans);
-				if (runningTransfers.length < concurentTransfers) {
-					runningTransfers.push(trans);
-				}
-				if (configService.getAutoStart() && runningTransfers.length <= concurentTransfers) {
-					this.start(index);
+				if (configService.getAutoStart()) {
+					if (runningTransfers.length < concurentTransfers) {
+						runningTransfers.push(trans);
+						run(trans);
+					}
 				}
 			},
 			getTransfers: function () {
 				return transfers;
 			},
-			start: function (index) {
-				var currentTransfer = transfers[index];
-				var trans = {};
-				for (var i = 0; i < concurentTransfers; i++) {
-					if (runningTransfers[i] === currentTransfer) {
-						trans = runningTransfers[i];
-					}
-				}
+			start: function (trans) {
+				// var currentTransfer = transfers[index];
+				// var trans = {};
+				// if (configService.getAutoStart()) {
+				// 	for (var i = 0; i < concurentTransfers; i++) {
+				// 		if (runningTransfers[i] === currentTransfer) {
+				// 			trans = runningTransfers[i];
+				// 		}
+				// 	}
+				// }
+				// else {
+				// 	if (runningTransfers.length < configService.getConcurentTransfersQty()) {
+				// 		trans = currentTransfer;
+				// 		runningTransfers.push(trans);
+				// 	}
+				// }
+				// if (trans.status == 'Queued')
+				// 	run(trans, index);
+				// else if (trans.status == 'Paused')
+				// 	service.resume(index);
+				/*if (!configService.getAutoStart()) {
+					runningTransfers.push(trans);
+				}*/
 				if (trans.status == 'Queued')
-					run(trans, index);
+					run(trans);
 				else if (trans.status == 'Paused')
-					service.resume(index);
+					service.resume(trans);
 			},
-			pause: function (index) {
-				service.pause(index);
+			pause: function (trans) {
+				service.pause(trans);
 			},
-			stop: function (index) {
-				service.stop(index);
+			stop: function (trans) {
+				service.stop(trans);
 			}
 		};
 	}]);

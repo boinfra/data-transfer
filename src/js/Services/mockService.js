@@ -1,15 +1,10 @@
 angular.module('data-transfer')
 
 	.factory('mockService', ['$timeout', function ($timeout) {
-		var pauseFiles = [];
+		var transfers = [];
 		return {
-			uploadFile: function (file, index) {
-				if (pauseFiles.length > index) {
-					pauseFiles[index] = false;
-				}
-				else {
-					pauseFiles.push(false);
-				}
+			uploadFile: function (file) {
+				transfers.push(file);
 				var prog = 0;
 				var time = 0;
 				var complete = false;
@@ -23,16 +18,16 @@ angular.module('data-transfer')
 
 				function intervalTrigger() {
 					setInterval(function () {
-						if (pauseFiles[index] === undefined) {
-							progress.state = 'Queued';
-							time = 0;
-							progress.prog = 0;
-							progress.file = file;
-							progress.elapsedTime = time / 1000 + ' s';
-							progress.remainingTime = (timeout - time) / 1000 + ' s';
-						}
-						else {
-							if (!pauseFiles[index]) {
+						// if (pauseFiles[index] === undefined) {
+						// 	progress.state = 'Queued';
+						// 	time = 0;
+						// 	progress.prog = 0;
+						// 	progress.file = file;
+						// 	progress.elapsedTime = time / 1000 + ' s';
+						// 	progress.remainingTime = (timeout - time) / 1000 + ' s';
+						// }
+						// else {
+							if (transfers.indexOf(file) !== -1) {
 								time += 100;
 								prog = (time / timeout) * 100;
 								progress.prog = prog;
@@ -44,7 +39,7 @@ angular.module('data-transfer')
 							}
 							else
 								progress.state = 'Paused';
-						}
+						// }
 						if (!complete) {
 							$(window).trigger(progress);
 						}
@@ -71,14 +66,15 @@ angular.module('data-transfer')
 					message = 'error';
 				}
 			},
-			pause: function (index) {
-				pauseFiles[index] = true;
+			pause: function (trans) {
+				trans.status = 'Paused';
 			},
-			resume: function (index) {
-				pauseFiles[index] = false;
+			resume: function (trans) {
+				trans.status = 'Pending';
 			},
-			stop: function (index) {
-				pauseFiles[index] = undefined;
+			stop: function (trans) {
+				trans.status = 'Queued';
+				transfers.splice(transfers.indexof(trans), 1);
 			}
 		};
 	}]);
