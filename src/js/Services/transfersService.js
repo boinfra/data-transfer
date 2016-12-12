@@ -11,6 +11,7 @@ angular.module('data-transfer')
 
 		return {
 			pushTransfer: function (trans, index) {
+				trans.id = index;
 				transfers.push(trans);
 				if (configService.getAutoStart()) {
 					run(trans, index);

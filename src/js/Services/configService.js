@@ -1,27 +1,33 @@
 angular.module('data-transfer')
 
-	.factory('configService', function(){
-		var autoStart = false, // If the upload should start automatically
-			autoRetriesQty = 3, // Number of times the upload should be automatically retried after fail
-			concurentTransfersQty = 1, // Number of concurent transfers
-			apiEndpointURL = 'http://demo.virtualskeleton.ch/api/upload', // URL of the endpoint that uploads files in the used API
-			displayedTransfersQty = 5; // Number of displayed transfers in one page of the transfersView
+	.factory('configService', function () {
+		// var settings;
+		// $.getJSON('../settings.json', function (json) {
+		// 	settings = json;
+		// });
+		var settings = {
+			"autoStart": "true",
+			"autoRetriesQty": 3,
+			"concurentTransfersQty": 1,
+			"apiEndpointURL": "http://localhost:8080/api/upload",
+			"displayedTransfersQty": 5
+		};
 
 		return {
-			getAutoStart: function() {
-				return autoStart;
+			getAutoStart: function () {
+				return settings.autoStart;
 			},
-			getAutoRetriesQty: function() {
-				return autoRetriesQty;
+			getAutoRetriesQty: function () {
+				return settings.autoRetriesQty;
 			},
-			getConcurentTransfersQty: function() {
-				return concurentTransfersQty;
+			getConcurentTransfersQty: function () {
+				return settings.concurentTransfersQty;
 			},
-			getApiEndpointURL: function() {
-				return apiEndpointURL;
+			getApiEndpointURL: function () {
+				return settings.apiEndpointURL;
 			},
-			getDisplayedTransfersQty: function() {
-				return displayedTransfersQty;
+			getDisplayedTransfersQty: function () {
+				return settings.displayedTransfersQty;
 			}
 		};
 	});

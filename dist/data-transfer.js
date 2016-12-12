@@ -30,28 +30,34 @@ angular.module('data-transfer')
 ;
 angular.module('data-transfer')
 
-	.factory('configService', function(){
-		var autoStart = false, // If the upload should start automatically
-			autoRetriesQty = 3, // Number of times the upload should be automatically retried after fail
-			concurentTransfersQty = 1, // Number of concurent transfers
-			apiEndpointURL = 'http://demo.virtualskeleton.ch/api/upload', // URL of the endpoint that uploads files in the used API
-			displayedTransfersQty = 5; // Number of displayed transfers in one page of the transfersView
+	.factory('configService', function () {
+		// var settings;
+		// $.getJSON('../settings.json', function (json) {
+		// 	settings = json;
+		// });
+		var settings = {
+			"autoStart": "true",
+			"autoRetriesQty": 3,
+			"concurentTransfersQty": 1,
+			"apiEndpointURL": "http://localhost:8080/api/upload",
+			"displayedTransfersQty": 5
+		};
 
 		return {
-			getAutoStart: function() {
-				return autoStart;
+			getAutoStart: function () {
+				return settings.autoStart;
 			},
-			getAutoRetriesQty: function() {
-				return autoRetriesQty;
+			getAutoRetriesQty: function () {
+				return settings.autoRetriesQty;
 			},
-			getConcurentTransfersQty: function() {
-				return concurentTransfersQty;
+			getConcurentTransfersQty: function () {
+				return settings.concurentTransfersQty;
 			},
-			getApiEndpointURL: function() {
-				return apiEndpointURL;
+			getApiEndpointURL: function () {
+				return settings.apiEndpointURL;
 			},
-			getDisplayedTransfersQty: function() {
-				return displayedTransfersQty;
+			getDisplayedTransfersQty: function () {
+				return settings.displayedTransfersQty;
 			}
 		};
 	});
@@ -179,6 +185,7 @@ angular.module('data-transfer')
 
 		return {
 			pushTransfer: function (trans, index) {
+				trans.id = index;
 				transfers.push(trans);
 				if (configService.getAutoStart()) {
 					run(trans, index);
@@ -362,41 +369,42 @@ angular.module('data-transfer')
 		$scope.page = '';
 		$scope.pageCount = 0;
 		$scope.currentPage = 1;
+		var transfers = transfersService.getTransfers();
 
 		$(window).on('progress', function (e) {
-			for (var i = 0; i < configService.getDisplayedTransfersQty(); i++) {
-				var currentTransfer = $scope.displayedTransfers[i];
+			for (var i = 0; i < transfers.length; i++) {
+				var currentTransfer = transfers[i];
 				if (currentTransfer === e.file) {
 					currentTransfer.status = e.state;
 					currentTransfer.prog = e.prog;
 					currentTransfer.elapsedTime = e.elapsedTime;
 					currentTransfer.remainingTime = e.remainingTime;
 					$scope.$apply();
-					i = configService.getDisplayedTransfersQty();
+					i = transfers.length;
 				}
 			}
 		});
 
 		$(window).on('complete', function (e) {
-			for (var i = 0; i < configService.getDisplayedTransfersQty(); i++) {
-				var currentTransfer = $scope.displayedTransfers[i];
+			for (var i = 0; i < transfers.length; i++) {
+				var currentTransfer = transfers[i];
 				if (currentTransfer === e.file) {
 					currentTransfer.status = e.state;
 					$scope.$apply();
-					i = configService.getDisplayedTransfersQty();
+					i = transfers.length;
 				}
 			}
 		});
 
-		$scope.start = function(index) {
+		$scope.start = function (index) {
 			transfersService.start(index);
 		};
 
-		$scope.pause = function(index) {
+		$scope.pause = function (index) {
 			transfersService.pause(index);
 		};
 
-		$scope.stop = function(index){
+		$scope.stop = function (index) {
 			transfersService.stop(index);
 		};
 
@@ -407,7 +415,7 @@ angular.module('data-transfer')
 				currentPage = num; // Change currentPage
 			$scope.displayedTransfers = []; // Flushing displayed transfers array
 			var displayedQty = configService.getDisplayedTransfersQty();
-			var transfers = transfersService.getTransfers();
+			transfers = transfersService.getTransfers();
 			// Loop that adds the correct number of transfers into the displayedTransfers array
 			for (var i = 0, trans = (currentPage - 1) * 5; i < displayedQty; i++ , trans++) {
 				if (transfers[trans] !== undefined) { // If the current transfer exist

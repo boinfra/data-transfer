@@ -5,41 +5,42 @@ angular.module('data-transfer')
 		$scope.page = '';
 		$scope.pageCount = 0;
 		$scope.currentPage = 1;
+		var transfers = transfersService.getTransfers();
 
 		$(window).on('progress', function (e) {
-			for (var i = 0; i < configService.getDisplayedTransfersQty(); i++) {
-				var currentTransfer = $scope.displayedTransfers[i];
+			for (var i = 0; i < transfers.length; i++) {
+				var currentTransfer = transfers[i];
 				if (currentTransfer === e.file) {
 					currentTransfer.status = e.state;
 					currentTransfer.prog = e.prog;
 					currentTransfer.elapsedTime = e.elapsedTime;
 					currentTransfer.remainingTime = e.remainingTime;
 					$scope.$apply();
-					i = configService.getDisplayedTransfersQty();
+					i = transfers.length;
 				}
 			}
 		});
 
 		$(window).on('complete', function (e) {
-			for (var i = 0; i < configService.getDisplayedTransfersQty(); i++) {
-				var currentTransfer = $scope.displayedTransfers[i];
+			for (var i = 0; i < transfers.length; i++) {
+				var currentTransfer = transfers[i];
 				if (currentTransfer === e.file) {
 					currentTransfer.status = e.state;
 					$scope.$apply();
-					i = configService.getDisplayedTransfersQty();
+					i = transfers.length;
 				}
 			}
 		});
 
-		$scope.start = function(index) {
+		$scope.start = function (index) {
 			transfersService.start(index);
 		};
 
-		$scope.pause = function(index) {
+		$scope.pause = function (index) {
 			transfersService.pause(index);
 		};
 
-		$scope.stop = function(index){
+		$scope.stop = function (index) {
 			transfersService.stop(index);
 		};
 
@@ -50,7 +51,7 @@ angular.module('data-transfer')
 				currentPage = num; // Change currentPage
 			$scope.displayedTransfers = []; // Flushing displayed transfers array
 			var displayedQty = configService.getDisplayedTransfersQty();
-			var transfers = transfersService.getTransfers();
+			transfers = transfersService.getTransfers();
 			// Loop that adds the correct number of transfers into the displayedTransfers array
 			for (var i = 0, trans = (currentPage - 1) * 5; i < displayedQty; i++ , trans++) {
 				if (transfers[trans] !== undefined) { // If the current transfer exist
