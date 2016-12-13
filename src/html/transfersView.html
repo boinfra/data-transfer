@@ -52,7 +52,7 @@
 						<td>{{transfer.elapsedTime}}</td>
 						<td>{{transfer.remainingTime}}</td>
 						<td>
-							<i class="fa fa-play fa-lg" ng-click="start(transfer)" ng-show="transfer.status == 'Paused' || transfer.status == 'Queued'"></i>
+							<i class="fa fa-play fa-lg" ng-click="start(transfer)" ng-show="transfer.status == 'Paused' || transfer.status == 'Queued' || transfer.status == 'Failed'"></i>
 							<i class="fa fa-pause fa-lg" ng-click="pause(transfer)" ng-show="transfer.status == 'Pending'"></i>
 							<i class="fa fa-stop fa-lg" ng-click="stop(transfer)" ng-show="transfer.status == 'Pending' || transfer.status == 'Paused'"></i>
 						</td>

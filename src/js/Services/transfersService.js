@@ -13,24 +13,44 @@ angular.module('data-transfer')
 		}
 
 		$(window).on('complete', function (e) {
-			transfersCompleted++;
-			if (transfersCompleted < transfers.length - 2) {
-				for (var i = 0; i < transfers.length; i++) {
-					var currentTransfer = transfers[i];
-					var position = 0;
-					if (currentTransfer === e.file) {
-						for (var ct = 0; ct < concurentTransfers; ct++) {
-							if (runningTransfers[ct] === currentTransfer) {
-								position = ct;
-								ct = runningTransfers;
+			if (e.state == 'Failed') {
+				if (e.file.autoRetries < configService.getAutoRetriesQty()) {
+					var index = transfers.indexOf(e.file);
+					transfers[index].autoRetries++;
+					var trans = transfers[index];
+					trans.status = 'Queued';
+					run(trans);
+				}
+				else {
+					for (var transfersCount = 0; transfersCount < transfers.length; transfersCount++) {
+						if (transfers[transfersCount].status === 'Queued') {
+							run(transfers[transfersCount]);
+							transfersCount = transfers.length;
+						}
+					}
+				}
+			}
+			else if (e.state == 'Succeeded') {
+				var offset = concurentTransfers - 1;
+				transfersCompleted++;
+				if (transfersCompleted < transfers.length - offset) {
+					for (var i = 0; i < transfers.length; i++) {
+						var currentTransfer = transfers[i];
+						var position = 0;
+						if (currentTransfer === e.file) {
+							for (var ct = 0; ct < concurentTransfers; ct++) {
+								if (runningTransfers[ct] === currentTransfer) {
+									position = ct;
+									ct = runningTransfers;
+								}
 							}
+							runningTransfers.splice(position, 1);
+							if (configService.getAutoStart()) {
+								runningTransfers.push(transfers[transfersCompleted + offset]);
+								run(transfers[transfersCompleted + offset]);
+							}
+							i = transfers.length;
 						}
-						runningTransfers.splice(position, 1);
-						if (configService.getAutoStart()) {
-							runningTransfers.push(transfers[transfersCompleted + 2]);
-							run(transfers[transfersCompleted + 2], transfers[transfersCompleted + 2].id);
-						}
-						i = transfers.length;
 					}
 				}
 			}
@@ -39,6 +59,7 @@ angular.module('data-transfer')
 		return {
 			pushTransfer: function (trans, index) {
 				trans.id = index;
+				trans.autoRetries = 0;
 				transfers.push(trans);
 				if (configService.getAutoStart()) {
 					if (runningTransfers.length < concurentTransfers) {
@@ -59,10 +80,9 @@ angular.module('data-transfer')
 					else if (runningTransfers.length <= concurentTransfers && trans.status === 'Paused') {
 						service.resume(trans);
 					}
-					console.debug(runningTransfers.length);
 				}
 				else {
-					if (trans.status === 'Queued') {
+					if (trans.status === 'Queued' || trans.status === 'Failed') {
 						run(trans);
 					}
 					else if (trans.status === 'Paused') {
