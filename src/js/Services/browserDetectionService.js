@@ -1,10 +1,10 @@
 angular.module('data-transfer')
 
-	.factory('browserDetectionService', function(){
+	.factory('browserDetectionService', function () {
 		return {
-			isChrome: function(){
+			isChrome: function () {
 				var chrome,
-				// Code copied from internet (http://stackoverflow.com/questions/4565112/javascript-how-to-find-out-if-the-user-browser-is-chrome)	
+					// Code copied from internet (http://stackoverflow.com/questions/4565112/javascript-how-to-find-out-if-the-user-browser-is-chrome)	
 					isChromium = window.chrome,
 					winNav = window.navigator,
 					vendorName = winNav.vendor,
