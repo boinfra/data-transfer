@@ -52,21 +52,20 @@ angular.module('data-transfer')
 			},
 			start: function (trans) {
 				if (!configService.getAutoStart()) {
-					if (runningTransfers.length < concurentTransfers) {
+					if (runningTransfers.length < concurentTransfers && trans.status === 'Queued') {
 						runningTransfers.push(trans);
-						if (trans.status == 'Queued') {
-							run(trans);
-						}
-						else if (trans.status == 'Paused') {
-							service.resume(trans);
-						}
-					}
-				}
-				else {
-					if (trans.status == 'Queued') {
 						run(trans);
 					}
-					else if (trans.status == 'Paused') {
+					else if (runningTransfers.length <= concurentTransfers && trans.status === 'Paused') {
+						service.resume(trans);
+					}
+					console.debug(runningTransfers.length);
+				}
+				else {
+					if (trans.status === 'Queued') {
+						run(trans);
+					}
+					else if (trans.status === 'Paused') {
 						service.resume(trans);
 					}
 				}
@@ -75,6 +74,8 @@ angular.module('data-transfer')
 				service.pause(trans);
 			},
 			stop: function (trans) {
+				var index = runningTransfers.indexOf(trans);
+				runningTransfers.splice(index, 1);
 				service.stop(trans);
 			}
 		};

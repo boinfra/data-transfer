@@ -2,11 +2,11 @@ angular.module('data-transfer', ['ngResource']); // Creation of the main module 
 ;
 angular.module('data-transfer')
 
-	.factory('browserDetectionService', function(){
+	.factory('browserDetectionService', function () {
 		return {
-			isChrome: function(){
+			isChrome: function () {
 				var chrome,
-				// Code copied from internet (http://stackoverflow.com/questions/4565112/javascript-how-to-find-out-if-the-user-browser-is-chrome)	
+					// Code copied from internet (http://stackoverflow.com/questions/4565112/javascript-how-to-find-out-if-the-user-browser-is-chrome)	
 					isChromium = window.chrome,
 					winNav = window.navigator,
 					vendorName = winNav.vendor,
@@ -145,27 +145,27 @@ angular.module('data-transfer')
 ;
 angular.module('data-transfer')
 
-.factory('serviceFactory', ['uploadService', 'mockService', function(uploadService, mockService){
-	
-	return {
-		getService: function(service){
-			var returnedService = {};
-			switch (service) {
-				case 'mock':
-					returnedService = mockService;
-					break;
-				case 'upload':
-					returnedService = uploadService;
-					break;
-				default:
-					returnedService = mockService;
-					break;
-			}
+	.factory('serviceFactory', ['uploadService', 'mockService', function (uploadService, mockService) {
 
-			return returnedService;
-		}
-	};
-}]);
+		return {
+			getService: function (service) {
+				var returnedService = {};
+				switch (service) {
+					case 'mock':
+						returnedService = mockService;
+						break;
+					case 'upload':
+						returnedService = uploadService;
+						break;
+					default:
+						returnedService = mockService;
+						break;
+				}
+
+				return returnedService;
+			}
+		};
+	}]);
 ;
 angular.module('data-transfer')
 
@@ -221,21 +221,20 @@ angular.module('data-transfer')
 			},
 			start: function (trans) {
 				if (!configService.getAutoStart()) {
-					if (runningTransfers.length < concurentTransfers) {
+					if (runningTransfers.length < concurentTransfers && trans.status === 'Queued') {
 						runningTransfers.push(trans);
-						if (trans.status == 'Queued') {
-							run(trans);
-						}
-						else if (trans.status == 'Paused') {
-							service.resume(trans);
-						}
-					}
-				}
-				else {
-					if (trans.status == 'Queued') {
 						run(trans);
 					}
-					else if (trans.status == 'Paused') {
+					else if (runningTransfers.length <= concurentTransfers && trans.status === 'Paused') {
+						service.resume(trans);
+					}
+					console.debug(runningTransfers.length);
+				}
+				else {
+					if (trans.status === 'Queued') {
+						run(trans);
+					}
+					else if (trans.status === 'Paused') {
 						service.resume(trans);
 					}
 				}
@@ -244,6 +243,8 @@ angular.module('data-transfer')
 				service.pause(trans);
 			},
 			stop: function (trans) {
+				var index = runningTransfers.indexOf(trans);
+				runningTransfers.splice(index, 1);
 				service.stop(trans);
 			}
 		};
