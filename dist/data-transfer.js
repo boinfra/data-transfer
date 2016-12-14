@@ -31,7 +31,8 @@ angular.module('data-transfer')
 angular.module('data-transfer')
 
 	.factory('configService', function () {
-		var settings;
+		var settings; // Object that stores all settings
+		// Ajax request to settings.json file. Get settings in json format
 		$.ajax({
 			url: '/dataTransfer/src/js/settings.json',
 			async: false,
@@ -42,18 +43,23 @@ angular.module('data-transfer')
 		});
 
 		return {
+			// Function that returns if the dropped file should upload automatically (boolean)
 			getAutoStart: function () {
 				return settings.autoStart;
 			},
+			// Function that returns the number of time a failed upload should retry automatically (number)
 			getAutoRetriesQty: function () {
 				return settings.autoRetriesQty;
 			},
+			// Function that returns the number of transfers that can run at the same time (number)
 			getConcurentTransfersQty: function () {
 				return settings.concurentTransfersQty;
 			},
+			// Function that returns URL of the API endpoint (string)
 			getApiEndpointURL: function () {
 				return settings.apiEndpointURL;
 			},
+			// Function that returns the number of transfers that are displayed on the same page in the view (number)
 			getDisplayedTransfersQty: function () {
 				return settings.displayedTransfersQty;
 			}
@@ -62,106 +68,110 @@ angular.module('data-transfer')
 ;
 angular.module('data-transfer')
 
-    .factory('mockService', ['$timeout', function($timeout) {
-        var transfers = [];
-        return {
-            uploadFile: function(file) {
-                transfers.push(file);
-                var prog = 0;
-                var time = 0;
-                var complete = false;
-                var returnValue;
-                var timeout;
-                var finishedSent = false;
-                var message;
+	.factory('mockService', ['$timeout', function ($timeout) {
+		var transfers = []; // Array of transfers
+		return {
+			// Function that uploads a file
+			uploadFile: function (file) {
+				transfers.push(file); // Add the file to the transfers array
+				var prog = 0; // Progress 
+				var time = 0; // Elapsed time of the upload 
+				var complete = false; // Indicates if the upload is complete
+				var timeout; // Duration of the upload (changes depending to the name of the file)
+				var finishedSent = false; // Indicates if finished event has been sent. Allows to send it only once.
+				var status; // Status which is set depending to the name of the file
 
-                var progress = $.Event('progress');
-                var finished = $.Event('complete');
+				// Events
+				var progress = $.Event('progress'); // Sent every 100ms to update progress
+				var finished = $.Event('complete'); // Sent when upload is complete (when time = timeout)
 
-                var interval = setInterval(function() {
-                    var index = transfers.lastIndexOf(file);
-                    if (index !== -1) {
-                        if (file.status === 'Failed') {
-                            file.status = 'Pending';
-                        }
-                        if (transfers[index].status === 'Queued') {
-                            time = 0;
-                            prog = (time / timeout) * 100;
-                            progress.prog = prog;
-                            progress.file = file;
-                            progress.elapsedTime = time / 1000 + ' s';
-                            complete = time > timeout;
-                            progress.remainingTime = (timeout - time) / 1000 + ' s';
-                        }
-                        if (transfers[index].status === 'Pending') {
-                            time += 100;
-                            prog = (time / timeout) * 100;
-                            progress.prog = prog;
-                            progress.file = file;
-                            progress.elapsedTime = time / 1000 + ' s';
-                            complete = time > timeout;
-                            progress.remainingTime = (timeout - time) / 1000 + ' s';
-                        }
-                        progress.state = transfers[index].status;
-                        if (!complete) {
-                            $(window).trigger(progress);
-                        }
-                        else if (!finishedSent) {
-                            finished.state = message == 'success' ? 'Succeeded' : 'Failed';
-                            finished.file = file;
-                            index = transfers.indexOf(file);
-                            transfers.splice(index, 1);
-                            finishedSent = true;
-                            clearInterval(interval);
-                            $(window).trigger(finished);
-                        }
-                    }
-                }, 100);
+				// Interval that executes a function each 100 ms
+				var interval = setInterval(function () {
+					var index = transfers.lastIndexOf(file); // Get the index of the file in transfers array
+					if (index !== -1) { // If file exists in array
+						if (file.status === 'Failed') { // If the up has failed (retry)
+							file.status = 'Pending'; // Status is now pending
+						}
+						if (transfers[index].status === 'Queued') { // If the upload has not been started yet
+							time = 0; // Set time to 0
+						}
+						if (transfers[index].status === 'Pending') { // If the upload is pending (running)
+							time += 100; // 100 ms seconds has passed sinces last interval
+						}
+						prog = (time / timeout) * 100; // Progress in percent
+						progress.prog = prog; // Affect this progress to the event
+						progress.file = file; // Affect the file to the event
+						progress.elapsedTime = time / 1000 + ' s'; // Elapsed time (in seconds)
+						complete = time > timeout; // Check if upload is complete
+						progress.remainingTime = (timeout - time) / 1000 + ' s'; // Remaining time is timeout - time (in seconds)
+						progress.state = transfers[index].status; // State of the progress event is the status of the running transfer
+						if (!complete) { // If transfer is not complete
+							$(window).trigger(progress); // Trigger the progress event
+						}
+						// If upload is complete
+						else if (!finishedSent) { // And finished event hadn't been sent 
+							finished.state = status; // Set state of the finished event
+							finished.file = file; // Set the file that is concerned by this event
+							index = transfers.indexOf(file); // Index of the file in the transfers array
+							transfers.splice(index, 1); // Remove file from transfers array
+							finishedSent = true; // Finished event has been sent
+							clearInterval(interval); // Clear this interval
+							$(window).trigger(finished); // Trigger the finished event
+						}
+					}
+				}, 100);
 
-                if (file.name.indexOf('success') !== -1) {
-                    timeout = 2000;
-                    message = 'success';
-                }
-                else if (file.name.indexOf('error') !== -1) {
-                    timeout = 3000;
-                    message = 'error';
-                }
-                else {
-                    timeout = 5000;
-                    message = 'error';
-                }
-            },
-            pause: function(trans) {
-                var index = transfers.indexOf(trans);
-                transfers[index].status = 'Paused';
-            },
-            resume: function(trans) {
-                var index = transfers.indexOf(trans);
-                transfers[index].status = 'Pending';
-            },
-            stop: function(trans) {
-                var index = transfers.indexOf(trans);
-                transfers[index].status = 'Queued';
-            }
-        };
-    }]);
+				// Check if the name of the file contains 'success'
+				if (file.name.indexOf('success') !== -1) {
+					timeout = 2000; // Set timeout to 2 seconds
+					status = 'Succeeded'; // Status is Succeeded
+				}
+				// Check if the name of the file contains 'error'
+				else if (file.name.indexOf('error') !== -1) {
+					timeout = 3000; // Set timeout to 3 seconds
+					status = 'Failed'; // Status is Failed
+				}
+				// If the name of the file contains neither 'succes' or 'error'
+				else {
+					timeout = 5000; // Set timeout to 5 seconds
+					status = 'Failed'; // Status is Failed
+				}
+			},
+			// Function that suspends the upload
+			pause: function (trans) {
+				var index = transfers.indexOf(trans); // Get the index of the file in the transfers array
+				transfers[index].status = 'Paused'; // Set status to Paused
+			},
+			// Function that resumes the upload
+			resume: function (trans) {
+				var index = transfers.indexOf(trans); // Get the index of the file in the transfers array
+				transfers[index].status = 'Pending'; // Set status to Pending
+			},
+			// Function that stops the upload
+			stop: function (trans) {
+				var index = transfers.indexOf(trans); // Get the index of the file in the transfers array
+				transfers[index].status = 'Queued'; // Set status to Queued
+			}
+		};
+	}]);
 ;
 angular.module('data-transfer')
 
 	.factory('serviceFactory', ['uploadService', 'mockService', function (uploadService, mockService) {
 
 		return {
+			// Function that returns either mockService or uploadService, depending on the value of service argument
 			getService: function (service) {
-				var returnedService = {};
+				var returnedService = {}; // Service that will be returned
 				switch (service) {
-					case 'mock':
-						returnedService = mockService;
+					case 'mock': // If the parameter is 'mock'
+						returnedService = mockService; // Return mockService
 						break;
-					case 'upload':
-						returnedService = uploadService;
+					case 'upload': // If the parameter is 'upload'
+						returnedService = uploadService; // Return uploadService
 						break;
-					default:
-						returnedService = mockService;
+					default: // In each other case
+						returnedService = mockService; // Return mockService
 						break;
 				}
 
@@ -173,105 +183,100 @@ angular.module('data-transfer')
 angular.module('data-transfer')
 
 	.factory('transfersService', ['serviceFactory', 'configService', function (serviceFactory, configService) {
-		var service = serviceFactory.getService('mock');
-		var transfers = [];
-		var runningTransfers = [];
-		var concurentTransfers = configService.getConcurentTransfersQty();
-		var transfersCompleted = 0;
+		var service = serviceFactory.getService('mock'); // Service used to upload files ('mock' or 'upload')
+		var transfers = []; // Array that contains all transfers
+		var runningTransfers = []; // Array that contains all transfers that are running
+		var concurentTransfers = configService.getConcurentTransfersQty(); // Get the number of transfers that can run at the same time
+		var transfersCompleted = 0; // Number of completed transfers
 
+		// Function that starts a transfer
 		function run(trans) {
-			trans.status = 'Pending';
-			service.uploadFile(trans);
+			trans.status = 'Pending'; // Status is Pending
+			service.uploadFile(trans); // Upload the file in the service
 		}
 
+		// Event triggered by the service when an upload is finished
 		$(window).on('complete', function (e) {
-			if (e.state == 'Failed') {
-				if (e.file.autoRetries < configService.getAutoRetriesQty()) {
-					var index = transfers.indexOf(e.file);
-					transfers[index].autoRetries++;
-					var trans = transfers[index];
-					trans.status = 'Queued';
-					run(trans);
+			var index = transfers.indexOf(e.file); // Get the index of the file in the transfers array
+			var trans = transfers[index]; // Get the file in the transfers (trans is shorter than transfers[index])
+			if (e.state == 'Failed') { // If upload has failed
+				if (e.file.autoRetries < configService.getAutoRetriesQty()) { // Check if the limit of autoRetries hasn't been reached
+					trans.autoRetries++; // Incerment autoRetries counter of this file
+					trans.status = 'Queued'; // Status is Queued, so the service knows it should restart the upload of this file from the beginning
+					run(trans); // Run the transfer
 				}
-				else {
+				else { // If the limit of autoRetries has been reached
+					// Look for the next queued transfer in the transfers array
 					for (var transfersCount = 0; transfersCount < transfers.length; transfersCount++) {
 						if (transfers[transfersCount].status === 'Queued') {
-							run(transfers[transfersCount]);
-							transfersCount = transfers.length;
+							run(transfers[transfersCount]); // Run this transfer
+							transfersCount = transfers.length; // Out of the loop
 						}
 					}
 				}
 			}
-			else if (e.state == 'Succeeded') {
-				var offset = concurentTransfers - 1;
-				transfersCompleted++;
-				if (transfersCompleted < transfers.length - offset) {
-					for (var i = 0; i < transfers.length; i++) {
-						var currentTransfer = transfers[i];
-						var position = 0;
-						if (currentTransfer === e.file) {
-							for (var ct = 0; ct < concurentTransfers; ct++) {
-								if (runningTransfers[ct] === currentTransfer) {
-									position = ct;
-									ct = runningTransfers;
-								}
-							}
-							runningTransfers.splice(position, 1);
-							if (configService.getAutoStart()) {
-								runningTransfers.push(transfers[transfersCompleted + offset]);
-								run(transfers[transfersCompleted + offset]);
-							}
-							i = transfers.length;
-						}
+			else if (e.state == 'Succeeded') { // If upload has succeeded
+				var offset = concurentTransfers - 1; // Offset for the index to get the next transfer
+				transfersCompleted++; // Incerment the counter of completed transfers
+				if (transfersCompleted < transfers.length - offset) { // If there is still queued transfers
+					runningTransfers.splice(index, 1); // Remove succeeded transfer from running transfers array
+					if (configService.getAutoStart()) { // If upload should start automatically
+						runningTransfers.push(transfers[transfersCompleted + offset]); // Add next queued transfer to running transfers array
+						run(transfers[transfersCompleted + offset]); // Run this transfer
 					}
 				}
 			}
 		});
 
+		// Object returned by transfersService 
 		return {
-			pushTransfer: function (trans, index) {
-				trans.id = index;
-				trans.autoRetries = 0;
-				transfers.push(trans);
-				if (configService.getAutoStart()) {
-					if (runningTransfers.length < concurentTransfers) {
-						runningTransfers.push(trans);
-						run(trans);
+			// Function that adds a transfer to the transfers array
+			pushTransfer: function (trans) {
+				trans.autoRetries = 0; // The transfer hasn't been retried yet
+				transfers.push(trans); // Add transfer
+				if (configService.getAutoStart()) { // If it should start automatically
+					if (runningTransfers.length < concurentTransfers) { // If the limit of concurent transfers is not reached
+						runningTransfers.push(trans); // Add the transfer to the running transfers array
+						run(trans); // Run the transfer
 					}
 				}
 			},
+			// Function that returns all transfers (array)
 			getTransfers: function () {
 				return transfers;
 			},
+			// Start upload
 			start: function (trans) {
-				if (!configService.getAutoStart()) {
-					if (runningTransfers.length < concurentTransfers && trans.status === 'Queued') {
-						runningTransfers.push(trans);
-						run(trans);
+				if (!configService.getAutoStart()) { // If transfer should not start automatically
+					if (runningTransfers.length < concurentTransfers && trans.status === 'Queued') { // If transfer is queued and concurent transfers limit is not reached
+						runningTransfers.push(trans); // Add transfer to transfers array
+						run(trans); // Run transfer
 					}
-					else if (runningTransfers.length <= concurentTransfers && trans.status === 'Paused') {
-						service.resume(trans);
+					else if (runningTransfers.length <= concurentTransfers && trans.status === 'Paused') { // If transfer id paused and concurent transfers limit is exceeded
+						service.resume(trans); // Resume transfer
 					}
 				}
-				else {
-					if (trans.status === 'Queued' || trans.status === 'Failed') {
-						run(trans);
-					}
-					else if (trans.status === 'Paused') {
-						service.resume(trans);
+				else { // If transfer should run automatically
+					if (trans.status === 'Queued' || trans.status === 'Failed') { // If transfer is queued or failed
+						run(trans); // Run transfer
+					} 
+					else if (trans.status === 'Paused') { // If transfer is paused
+						service.resume(trans); // Resume transfer
 					}
 				}
 			},
-			pause: function (trans) {
+			// Function that supsends transfer
+			pause: function (trans) { 
 				service.pause(trans);
 			},
+			// Function that stops transfer
 			stop: function (trans) {
-				var index = runningTransfers.indexOf(trans);
-				runningTransfers.splice(index, 1);
-				service.stop(trans);
+				var index = runningTransfers.indexOf(trans); // Get the index in running transfers
+				runningTransfers.splice(index, 1); // Remove transfer from running transfers array
+				service.stop(trans); // Stop transfer
 			}
 		};
-	}]);
+	}]); 
 ;
 angular.module('data-transfer')
 
@@ -288,9 +293,10 @@ angular.module('data-transfer')
 angular.module('data-transfer')
 
 	.controller('dropController', ['$scope', 'browserDetectionService', 'transfersService', function ($scope, browserDetectionService, transfersService) {
-		var isChrome = browserDetectionService.isChrome();
-		if (isChrome) {
-			document.getElementById("dropMessage").innerHTML = "Drag n'drop your files or folders here";
+		var isChrome = browserDetectionService.isChrome(); // Check if user uses Chromr or another compatible browser
+		// Display the message in the drop zone
+		if (isChrome) { 
+			document.getElementById("dropMessage").innerHTML = "Drag n'drop your files or folders here"; 
 		}
 		else {
 			document.getElementById("dropMessage").innerHTML = "Drag n'drop your files here";
@@ -298,12 +304,14 @@ angular.module('data-transfer')
 
 		var dropZone = document.getElementById("dropZone");
 
+		// onDragover event of the dropZone
 		dropZone.ondragover = function (ev) {
-			ev.preventDefault();
+			ev.preventDefault(); // Prevent dropped file to be openned in the browser
 		};
 
+		// onDrop event of the dropZone
 		dropZone.ondrop = function (ev) {
-			ev.preventDefault();
+			ev.preventDefault(); // Prevent dropped file to be openned in the browser
 			var droppedFiles = isChrome ? ev.dataTransfer.items : ev.dataTransfer.files; // Dropped files array affected depending on the browser
 			if (isChrome) {
 				for (var entryCnt = 0; entryCnt < droppedFiles.length; entryCnt++) {
@@ -375,7 +383,7 @@ angular.module('data-transfer')
 							}
 						}
 						if (!fileAlreadyDropped) { // If the file isn't already dropped
-							transfersService.pushTransfer(newTrans, transfersService.getTransfers().length); // Pushing into array
+							transfersService.pushTransfer(newTrans); // Pushing into array
 							$scope.$apply(function () { // Applying changes
 								$("#fileTransfersView").scope().changePage(0); // Change displayed transfers (by changing page)
 								$("#fileTransfersView").scope().definePagination(); // Define and display the pagination
@@ -428,48 +436,55 @@ angular.module('data-transfer')
 angular.module('data-transfer')
 
     .controller('viewController', ['$scope', 'configService', 'transfersService', function($scope, configService, transfersService) {
-        $scope.displayedTransfers = [];
-        $scope.page = '';
-        $scope.pageCount = 0;
-        $scope.currentPage = 1;
-        var transfers = transfersService.getTransfers();
+        $scope.displayedTransfers = []; // Transfers that are displayed in the view (size milited in the settings and content changes each times user changes page in the view)
+        $scope.page = ''; // Name of the page (in the application)
+        $scope.pageCount = 0; // Number of pages in the view 
+        $scope.currentPage = 1; // Current page in the view
+        var transfers = transfersService.getTransfers(); // All transfers (from transfersService)
 
+        // Progress event sent by the service (mock or upload)
         $(window).on('progress', function(e) {
+            // Search the corresponding transfer in transfers array
             for (var i = 0; i < transfers.length; i++) {
                 var currentTransfer = transfers[i];
-                if (currentTransfer === e.file) {
-                    currentTransfer.status = e.state;
-                    currentTransfer.prog = e.prog;
-                    currentTransfer.elapsedTime = e.elapsedTime;
-                    currentTransfer.remainingTime = e.remainingTime;
-                    $scope.$apply();
-                    i = transfers.length;
+                if (currentTransfer === e.file) { // If corresponding
+                    currentTransfer.status = e.state; // Set transfer status
+                    currentTransfer.prog = e.prog; // Set transfer progress (to display the progressBar)
+                    currentTransfer.elapsedTime = e.elapsedTime; // Set elapsed time
+                    currentTransfer.remainingTime = e.remainingTime; // Set remaining time
+                    $scope.$apply(); // Apply changes to the scope. This is used to refresh the view
+                    i = transfers.length; // Out of the loop
                 }
             }
         });
 
+        // Complete event sent by the service (mock or upload)
         $(window).on('complete', function(e) {
+            // Search the corresponding transfer in transfers array
             for (var i = 0; i < transfers.length; i++) {
                 var currentTransfer = transfers[i];
-                if (currentTransfer === e.file) {
-                    currentTransfer.status = e.state;
-                    if (e.state === 'Failed') {
-                        currentTransfer.prog = 0;
+                if (currentTransfer === e.file) { // If corresponding
+                    currentTransfer.status = e.state; // Set transfer status
+                    if (e.state === 'Failed') { // If the upload has failed
+                        currentTransfer.prog = 0; // Set progress to 0%
                     }
-                    $scope.$apply();
-                    i = transfers.length;
+                    $scope.$apply(); // Apply changes to the scope. This is used to refresh the view
+                    i = transfers.length; // Out of the loop
                 }
             }
         });
 
+        // Function that starts the upload (Sent by clicking on the start button)
         $scope.start = function(trans) {
             transfersService.start(trans);
         };
 
+        // Function that suspends the upload (Sent by clicking on the pause button)
         $scope.pause = function(trans) {
             transfersService.pause(trans);
         };
 
+        // Function that stops the upload (Sent by clicking on the stop button)
         $scope.stop = function(trans) {
             transfersService.stop(trans);
         };

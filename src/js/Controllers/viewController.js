@@ -1,48 +1,55 @@
 angular.module('data-transfer')
 
     .controller('viewController', ['$scope', 'configService', 'transfersService', function($scope, configService, transfersService) {
-        $scope.displayedTransfers = [];
-        $scope.page = '';
-        $scope.pageCount = 0;
-        $scope.currentPage = 1;
-        var transfers = transfersService.getTransfers();
+        $scope.displayedTransfers = []; // Transfers that are displayed in the view (size milited in the settings and content changes each times user changes page in the view)
+        $scope.page = ''; // Name of the page (in the application)
+        $scope.pageCount = 0; // Number of pages in the view 
+        $scope.currentPage = 1; // Current page in the view
+        var transfers = transfersService.getTransfers(); // All transfers (from transfersService)
 
+        // Progress event sent by the service (mock or upload)
         $(window).on('progress', function(e) {
+            // Search the corresponding transfer in transfers array
             for (var i = 0; i < transfers.length; i++) {
                 var currentTransfer = transfers[i];
-                if (currentTransfer === e.file) {
-                    currentTransfer.status = e.state;
-                    currentTransfer.prog = e.prog;
-                    currentTransfer.elapsedTime = e.elapsedTime;
-                    currentTransfer.remainingTime = e.remainingTime;
-                    $scope.$apply();
-                    i = transfers.length;
+                if (currentTransfer === e.file) { // If corresponding
+                    currentTransfer.status = e.state; // Set transfer status
+                    currentTransfer.prog = e.prog; // Set transfer progress (to display the progressBar)
+                    currentTransfer.elapsedTime = e.elapsedTime; // Set elapsed time
+                    currentTransfer.remainingTime = e.remainingTime; // Set remaining time
+                    $scope.$apply(); // Apply changes to the scope. This is used to refresh the view
+                    i = transfers.length; // Out of the loop
                 }
             }
         });
 
+        // Complete event sent by the service (mock or upload)
         $(window).on('complete', function(e) {
+            // Search the corresponding transfer in transfers array
             for (var i = 0; i < transfers.length; i++) {
                 var currentTransfer = transfers[i];
-                if (currentTransfer === e.file) {
-                    currentTransfer.status = e.state;
-                    if (e.state === 'Failed') {
-                        currentTransfer.prog = 0;
+                if (currentTransfer === e.file) { // If corresponding
+                    currentTransfer.status = e.state; // Set transfer status
+                    if (e.state === 'Failed') { // If the upload has failed
+                        currentTransfer.prog = 0; // Set progress to 0%
                     }
-                    $scope.$apply();
-                    i = transfers.length;
+                    $scope.$apply(); // Apply changes to the scope. This is used to refresh the view
+                    i = transfers.length; // Out of the loop
                 }
             }
         });
 
+        // Function that starts the upload (Sent by clicking on the start button)
         $scope.start = function(trans) {
             transfersService.start(trans);
         };
 
+        // Function that suspends the upload (Sent by clicking on the pause button)
         $scope.pause = function(trans) {
             transfersService.pause(trans);
         };
 
+        // Function that stops the upload (Sent by clicking on the stop button)
         $scope.stop = function(trans) {
             transfersService.stop(trans);
         };

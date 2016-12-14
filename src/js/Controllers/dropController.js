@@ -1,9 +1,10 @@
 angular.module('data-transfer')
 
 	.controller('dropController', ['$scope', 'browserDetectionService', 'transfersService', function ($scope, browserDetectionService, transfersService) {
-		var isChrome = browserDetectionService.isChrome();
-		if (isChrome) {
-			document.getElementById("dropMessage").innerHTML = "Drag n'drop your files or folders here";
+		var isChrome = browserDetectionService.isChrome(); // Check if user uses Chromr or another compatible browser
+		// Display the message in the drop zone
+		if (isChrome) { 
+			document.getElementById("dropMessage").innerHTML = "Drag n'drop your files or folders here"; 
 		}
 		else {
 			document.getElementById("dropMessage").innerHTML = "Drag n'drop your files here";
@@ -11,12 +12,14 @@ angular.module('data-transfer')
 
 		var dropZone = document.getElementById("dropZone");
 
+		// onDragover event of the dropZone
 		dropZone.ondragover = function (ev) {
-			ev.preventDefault();
+			ev.preventDefault(); // Prevent dropped file to be openned in the browser
 		};
 
+		// onDrop event of the dropZone
 		dropZone.ondrop = function (ev) {
-			ev.preventDefault();
+			ev.preventDefault(); // Prevent dropped file to be openned in the browser
 			var droppedFiles = isChrome ? ev.dataTransfer.items : ev.dataTransfer.files; // Dropped files array affected depending on the browser
 			if (isChrome) {
 				for (var entryCnt = 0; entryCnt < droppedFiles.length; entryCnt++) {
@@ -88,7 +91,7 @@ angular.module('data-transfer')
 							}
 						}
 						if (!fileAlreadyDropped) { // If the file isn't already dropped
-							transfersService.pushTransfer(newTrans, transfersService.getTransfers().length); // Pushing into array
+							transfersService.pushTransfer(newTrans); // Pushing into array
 							$scope.$apply(function () { // Applying changes
 								$("#fileTransfersView").scope().changePage(0); // Change displayed transfers (by changing page)
 								$("#fileTransfersView").scope().definePagination(); // Define and display the pagination

@@ -1,102 +1,97 @@
 angular.module('data-transfer')
 
 	.factory('transfersService', ['serviceFactory', 'configService', function (serviceFactory, configService) {
-		var service = serviceFactory.getService('mock');
-		var transfers = [];
-		var runningTransfers = [];
-		var concurentTransfers = configService.getConcurentTransfersQty();
-		var transfersCompleted = 0;
+		var service = serviceFactory.getService('mock'); // Service used to upload files ('mock' or 'upload')
+		var transfers = []; // Array that contains all transfers
+		var runningTransfers = []; // Array that contains all transfers that are running
+		var concurentTransfers = configService.getConcurentTransfersQty(); // Get the number of transfers that can run at the same time
+		var transfersCompleted = 0; // Number of completed transfers
 
+		// Function that starts a transfer
 		function run(trans) {
-			trans.status = 'Pending';
-			service.uploadFile(trans);
+			trans.status = 'Pending'; // Status is Pending
+			service.uploadFile(trans); // Upload the file in the service
 		}
 
+		// Event triggered by the service when an upload is finished
 		$(window).on('complete', function (e) {
-			if (e.state == 'Failed') {
-				if (e.file.autoRetries < configService.getAutoRetriesQty()) {
-					var index = transfers.indexOf(e.file);
-					transfers[index].autoRetries++;
-					var trans = transfers[index];
-					trans.status = 'Queued';
-					run(trans);
+			var index = transfers.indexOf(e.file); // Get the index of the file in the transfers array
+			var trans = transfers[index]; // Get the file in the transfers (trans is shorter than transfers[index])
+			if (e.state == 'Failed') { // If upload has failed
+				if (e.file.autoRetries < configService.getAutoRetriesQty()) { // Check if the limit of autoRetries hasn't been reached
+					trans.autoRetries++; // Incerment autoRetries counter of this file
+					trans.status = 'Queued'; // Status is Queued, so the service knows it should restart the upload of this file from the beginning
+					run(trans); // Run the transfer
 				}
-				else {
+				else { // If the limit of autoRetries has been reached
+					// Look for the next queued transfer in the transfers array
 					for (var transfersCount = 0; transfersCount < transfers.length; transfersCount++) {
 						if (transfers[transfersCount].status === 'Queued') {
-							run(transfers[transfersCount]);
-							transfersCount = transfers.length;
+							run(transfers[transfersCount]); // Run this transfer
+							transfersCount = transfers.length; // Out of the loop
 						}
 					}
 				}
 			}
-			else if (e.state == 'Succeeded') {
-				var offset = concurentTransfers - 1;
-				transfersCompleted++;
-				if (transfersCompleted < transfers.length - offset) {
-					for (var i = 0; i < transfers.length; i++) {
-						var currentTransfer = transfers[i];
-						var position = 0;
-						if (currentTransfer === e.file) {
-							for (var ct = 0; ct < concurentTransfers; ct++) {
-								if (runningTransfers[ct] === currentTransfer) {
-									position = ct;
-									ct = runningTransfers;
-								}
-							}
-							runningTransfers.splice(position, 1);
-							if (configService.getAutoStart()) {
-								runningTransfers.push(transfers[transfersCompleted + offset]);
-								run(transfers[transfersCompleted + offset]);
-							}
-							i = transfers.length;
-						}
+			else if (e.state == 'Succeeded') { // If upload has succeeded
+				var offset = concurentTransfers - 1; // Offset for the index to get the next transfer
+				transfersCompleted++; // Incerment the counter of completed transfers
+				if (transfersCompleted < transfers.length - offset) { // If there is still queued transfers
+					runningTransfers.splice(index, 1); // Remove succeeded transfer from running transfers array
+					if (configService.getAutoStart()) { // If upload should start automatically
+						runningTransfers.push(transfers[transfersCompleted + offset]); // Add next queued transfer to running transfers array
+						run(transfers[transfersCompleted + offset]); // Run this transfer
 					}
 				}
 			}
 		});
 
+		// Object returned by transfersService 
 		return {
-			pushTransfer: function (trans, index) {
-				trans.id = index;
-				trans.autoRetries = 0;
-				transfers.push(trans);
-				if (configService.getAutoStart()) {
-					if (runningTransfers.length < concurentTransfers) {
-						runningTransfers.push(trans);
-						run(trans);
+			// Function that adds a transfer to the transfers array
+			pushTransfer: function (trans) {
+				trans.autoRetries = 0; // The transfer hasn't been retried yet
+				transfers.push(trans); // Add transfer
+				if (configService.getAutoStart()) { // If it should start automatically
+					if (runningTransfers.length < concurentTransfers) { // If the limit of concurent transfers is not reached
+						runningTransfers.push(trans); // Add the transfer to the running transfers array
+						run(trans); // Run the transfer
 					}
 				}
 			},
+			// Function that returns all transfers (array)
 			getTransfers: function () {
 				return transfers;
 			},
+			// Start upload
 			start: function (trans) {
-				if (!configService.getAutoStart()) {
-					if (runningTransfers.length < concurentTransfers && trans.status === 'Queued') {
-						runningTransfers.push(trans);
-						run(trans);
+				if (!configService.getAutoStart()) { // If transfer should not start automatically
+					if (runningTransfers.length < concurentTransfers && trans.status === 'Queued') { // If transfer is queued and concurent transfers limit is not reached
+						runningTransfers.push(trans); // Add transfer to transfers array
+						run(trans); // Run transfer
 					}
-					else if (runningTransfers.length <= concurentTransfers && trans.status === 'Paused') {
-						service.resume(trans);
+					else if (runningTransfers.length <= concurentTransfers && trans.status === 'Paused') { // If transfer id paused and concurent transfers limit is exceeded
+						service.resume(trans); // Resume transfer
 					}
 				}
-				else {
-					if (trans.status === 'Queued' || trans.status === 'Failed') {
-						run(trans);
-					}
-					else if (trans.status === 'Paused') {
-						service.resume(trans);
+				else { // If transfer should run automatically
+					if (trans.status === 'Queued' || trans.status === 'Failed') { // If transfer is queued or failed
+						run(trans); // Run transfer
+					} 
+					else if (trans.status === 'Paused') { // If transfer is paused
+						service.resume(trans); // Resume transfer
 					}
 				}
 			},
-			pause: function (trans) {
+			// Function that supsends transfer
+			pause: function (trans) { 
 				service.pause(trans);
 			},
+			// Function that stops transfer
 			stop: function (trans) {
-				var index = runningTransfers.indexOf(trans);
-				runningTransfers.splice(index, 1);
-				service.stop(trans);
+				var index = runningTransfers.indexOf(trans); // Get the index in running transfers
+				runningTransfers.splice(index, 1); // Remove transfer from running transfers array
+				service.stop(trans); // Stop transfer
 			}
 		};
-	}]);
+	}]); 
