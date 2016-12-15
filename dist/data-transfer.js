@@ -1,4 +1,4 @@
-angular.module('data-transfer', ['ngResource']); // Creation of the main module of the framework
+angular.module('data-transfer', ['ngResource', 'ui.bootstrap']); // Creation of the main module of the framework
 ;
 angular.module('data-transfer')
 
@@ -192,6 +192,7 @@ angular.module('data-transfer')
 		// Function that starts a transfer
 		function run(trans) {
 			trans.status = 'Pending'; // Status is Pending
+			trans.prog = 0;
 			service.uploadFile(trans); // Upload the file in the service
 		}
 
