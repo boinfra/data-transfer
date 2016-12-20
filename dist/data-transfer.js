@@ -74,8 +74,14 @@ angular.module('data-transfer')
 			// Function that uploads a file
 			uploadFile: function (file) {
 				transfers.push(file); // Add the file to the transfers array
-				var prog = 0; // Progress 
-				var time = 0; // Elapsed time of the upload 
+				var prog = file.prog; // Progress 
+				var time;
+				if (file.time !== undefined) {
+					time = file.time; // Elapsed time of the upload 
+				}
+				else {
+					time = 0;
+				}
 				var complete = false; // Indicates if the upload is complete
 				var timeout; // Duration of the upload (changes depending to the name of the file)
 				var finishedSent = false; // Indicates if finished event has been sent. Allows to send it only once.
@@ -102,6 +108,7 @@ angular.module('data-transfer')
 						progress.prog = prog; // Affect this progress to the event
 						progress.file = file; // Affect the file to the event
 						progress.elapsedTime = time / 1000 + ' s'; // Elapsed time (in seconds)
+						progress.time = time;
 						complete = time > timeout; // Check if upload is complete
 						progress.remainingTime = (timeout - time) / 1000 + ' s'; // Remaining time is timeout - time (in seconds)
 						progress.state = transfers[index].status; // State of the progress event is the status of the running transfer
@@ -192,9 +199,55 @@ angular.module('data-transfer')
 		// Function that starts a transfer
 		function run(trans) {
 			trans.status = 'Pending'; // Status is Pending
-			trans.prog = 0;
 			service.uploadFile(trans); // Upload the file in the service
 		}
+
+		// Event triggered when the user enters the page
+		// Loads transfers to run
+		$(document).ready(function () {
+			transfers = JSON.parse(localStorage.getItem('transfers'));
+			if (configService.getAutoStart()) {
+				for (var i = 0; i < transfers.length; i++) {
+					if(transfers[i].status == 'Paused') {
+						runningTransfers.push(transfers[i]);
+						run(transfers[i]);
+					}
+				}
+			}
+			var loaded = $.Event('loaded');
+			$(window).trigger(loaded);
+		});
+
+		// Progress event sent by the service (mock or upload)
+		$(window).on('progress', function (e) {
+			// Search the corresponding transfer in transfers array
+			for (var i = 0; i < transfers.length; i++) {
+				var currentTransfer = transfers[i];
+				if (currentTransfer === e.file) { // If corresponding
+					currentTransfer.status = e.state; // Set transfer status
+					currentTransfer.prog = e.prog; // Set transfer progress (to display the progressBar)
+					currentTransfer.time = e.time;
+					i = transfers.length; // Out of the loop
+				}
+			}
+		});
+
+		// Event triggered when the user exits the page
+		// Save currently running transfers or queued transfers
+		window.onbeforeunload = function (e) {
+			var transfersToSave = [];
+			for (var i = 0; i < transfers.length; i++) {
+				if (transfers[i].status !== 'Succeeded') {
+					if (transfers[i].status == 'Pending') {
+						transfers[i].status = 'Paused';
+					}
+					transfersToSave.push(transfers[i]);
+				}
+			}
+
+			localStorage.setItem('transfers', JSON.stringify(transfersToSave));
+			// localStorage.setItem('transfers', '[]');
+		};
 
 		// Event triggered by the service when an upload is finished
 		$(window).on('complete', function (e) {
@@ -204,6 +257,8 @@ angular.module('data-transfer')
 				if (e.file.autoRetries < configService.getAutoRetriesQty()) { // Check if the limit of autoRetries hasn't been reached
 					trans.autoRetries++; // Incerment autoRetries counter of this file
 					trans.status = 'Queued'; // Status is Queued, so the service knows it should restart the upload of this file from the beginning
+					trans.prog = 0;
+					trans.time = 0;
 					run(trans); // Run the transfer
 				}
 				else { // If the limit of autoRetries has been reached
@@ -234,6 +289,7 @@ angular.module('data-transfer')
 			// Function that adds a transfer to the transfers array
 			pushTransfer: function (trans) {
 				trans.autoRetries = 0; // The transfer hasn't been retried yet
+				trans.prog = 0;
 				transfers.push(trans); // Add transfer
 				if (configService.getAutoStart()) { // If it should start automatically
 					if (runningTransfers.length < concurentTransfers) { // If the limit of concurent transfers is not reached
@@ -259,15 +315,17 @@ angular.module('data-transfer')
 				}
 				else { // If transfer should run automatically
 					if (trans.status === 'Queued' || trans.status === 'Failed') { // If transfer is queued or failed
+						trans.prog = 0;
+						trans.time = 0;
 						run(trans); // Run transfer
-					} 
+					}
 					else if (trans.status === 'Paused') { // If transfer is paused
 						service.resume(trans); // Resume transfer
 					}
 				}
 			},
 			// Function that supsends transfer
-			pause: function (trans) { 
+			pause: function (trans) {
 				service.pause(trans);
 			},
 			// Function that stops transfer
@@ -281,15 +339,27 @@ angular.module('data-transfer')
 ;
 angular.module('data-transfer')
 
-	.factory('uploadService', function () {
+	.factory('uploadService', ['$resource', 'configService', function ($resource, configService) {
 		var acceptedExtensions = ['*'];
+		var url = configService.getApiEndpointURL();
 		return {
 			uploadFile: function (file) {
-				console.debug("Upload file");
-				console.debug(file);
+
+				var Upload = $resource(url, {}, {
+					post: {
+						method: 'POST',
+						headers: {
+							'Authorization': 'Basic ZGVtb0B2aXJ0dWFsc2tlbGV0b24uY2g6ZGVtbw==',
+							'Content-Type': 'multipart/form-data'
+						}
+					}
+				});
+				Upload.filename = file.name;
+				Upload.content = file.content;
+				Upload.post();
 			}
 		};
-	});
+	}]);
 ;
 angular.module('data-transfer')
 
@@ -436,156 +506,161 @@ angular.module('data-transfer')
 ;
 angular.module('data-transfer')
 
-    .controller('viewController', ['$scope', 'configService', 'transfersService', function($scope, configService, transfersService) {
-        $scope.displayedTransfers = []; // Transfers that are displayed in the view (size milited in the settings and content changes each times user changes page in the view)
-        $scope.page = ''; // Name of the page (in the application)
-        $scope.pageCount = 0; // Number of pages in the view 
-        $scope.currentPage = 1; // Current page in the view
-        var transfers = transfersService.getTransfers(); // All transfers (from transfersService)
+	.controller('viewController', ['$scope', 'configService', 'transfersService', function ($scope, configService, transfersService) {
+		$scope.displayedTransfers = []; // Transfers that are displayed in the view (size milited in the settings and content changes each times user changes page in the view)
+		$scope.page = ''; // Name of the page (in the application)
+		$scope.pageCount = 0; // Number of pages in the view 
+		$scope.currentPage = 1; // Current page in the view
 
-        // Progress event sent by the service (mock or upload)
-        $(window).on('progress', function(e) {
-            // Search the corresponding transfer in transfers array
-            for (var i = 0; i < transfers.length; i++) {
-                var currentTransfer = transfers[i];
-                if (currentTransfer === e.file) { // If corresponding
-                    currentTransfer.status = e.state; // Set transfer status
-                    currentTransfer.prog = e.prog; // Set transfer progress (to display the progressBar)
-                    currentTransfer.elapsedTime = e.elapsedTime; // Set elapsed time
-                    currentTransfer.remainingTime = e.remainingTime; // Set remaining time
-                    $scope.$apply(); // Apply changes to the scope. This is used to refresh the view
-                    i = transfers.length; // Out of the loop
-                }
-            }
-        });
+		$(window).on('loaded', function () {
+			var transfers = transfersService.getTransfers(); // All transfers (from transfersService)
+			$scope.definePagination();
+			$scope.changePage(1);
+			$scope.$apply();
+		});
 
-        // Complete event sent by the service (mock or upload)
-        $(window).on('complete', function(e) {
-            // Search the corresponding transfer in transfers array
-            for (var i = 0; i < transfers.length; i++) {
-                var currentTransfer = transfers[i];
-                if (currentTransfer === e.file) { // If corresponding
-                    currentTransfer.status = e.state; // Set transfer status
-                    if (e.state === 'Failed') { // If the upload has failed
-                        currentTransfer.prog = 0; // Set progress to 0%
-                    }
-                    $scope.$apply(); // Apply changes to the scope. This is used to refresh the view
-                    i = transfers.length; // Out of the loop
-                }
-            }
-        });
+		// Progress event sent by the service (mock or upload)
+		$(window).on('progress', function (e) {
+			// Search the corresponding transfer in transfers array
+			for (var i = 0; i < transfers.length; i++) {
+				var currentTransfer = transfers[i];
+				if (currentTransfer === e.file) { // If corresponding
+					currentTransfer.status = e.state; // Set transfer status
+					currentTransfer.prog = e.prog; // Set transfer progress (to display the progressBar)
+					currentTransfer.time = e.time;
+					currentTransfer.elapsedTime = e.elapsedTime; // Set elapsed time
+					currentTransfer.remainingTime = e.remainingTime; // Set remaining time
+					$scope.$apply(); // Apply changes to the scope. This is used to refresh the view
+					i = transfers.length; // Out of the loop
+				}
+			}
+		});
 
-        // Function that starts the upload (Sent by clicking on the start button)
-        $scope.start = function(trans) {
-            transfersService.start(trans);
-        };
+		// Complete event sent by the service (mock or upload)
+		$(window).on('complete', function (e) {
+			// Search the corresponding transfer in transfers array
+			for (var i = 0; i < transfers.length; i++) {
+				var currentTransfer = transfers[i];
+				if (currentTransfer === e.file) { // If corresponding
+					currentTransfer.status = e.state; // Set transfer status
+					if (e.state === 'Failed') { // If the upload has failed
+						currentTransfer.prog = 0; // Set progress to 0%
+					}
+					$scope.$apply(); // Apply changes to the scope. This is used to refresh the view
+					i = transfers.length; // Out of the loop
+				}
+			}
+		});
 
-        // Function that suspends the upload (Sent by clicking on the pause button)
-        $scope.pause = function(trans) {
-            transfersService.pause(trans);
-        };
+		// Function that starts the upload (Sent by clicking on the start button)
+		$scope.start = function (trans) {
+			transfersService.start(trans);
+		};
 
-        // Function that stops the upload (Sent by clicking on the stop button)
-        $scope.stop = function(trans) {
-            transfersService.stop(trans);
-        };
+		// Function that suspends the upload (Sent by clicking on the pause button)
+		$scope.pause = function (trans) {
+			transfersService.pause(trans);
+		};
 
-        // Function that changes the page of the table (by changing displayed transfers)
-        // num: number of the page to display
-        $scope.changePage = function(num) {
-            if (num !== 0)
-                currentPage = num; // Change currentPage
-            $scope.displayedTransfers = []; // Flushing displayed transfers array
-            var displayedQty = configService.getDisplayedTransfersQty();
-            transfers = transfersService.getTransfers();
-            // Loop that adds the correct number of transfers into the displayedTransfers array
-            for (var i = 0, trans = (currentPage - 1) * 5; i < displayedQty; i++ , trans++) {
-                if (transfers[trans] !== undefined) { // If the current transfer exist
-                    if ($scope.page != 'upload' || transfers[trans].transferType == 'Upload') { // Check conditions to display current transfer (page different than "upload" or transfer type is "Upload")
-                        $scope.displayedTransfers.push(transfers[trans]); // Affect the current displayedTransfer
-                    }
-                    else { // If transfer shouldn't be displayed
-                        i--; // Decrement i. It has for effect to stay at the same index in the display array
-                    }
-                }
-                else // If the transfer doesn't exisit
-                    i = displayedQty; // Go out of the loop
-            }
-        };
+		// Function that stops the upload (Sent by clicking on the stop button)
+		$scope.stop = function (trans) {
+			transfersService.stop(trans);
+		};
 
-        $scope.definePagination = function() {
-            var displayedQty = configService.getDisplayedTransfersQty();
-            $scope.pageCount = (transfersService.getTransfers().length / displayedQty) + 1; // Calculate number of pages from number of transfers to display
-            // init bootpag
-            $('#page-selection').bootpag({
-                total: $scope.pageCount,
-                maxVisible: displayedQty,
-                firstLastUse: true,
-                first: '←',
-                last: '→',
-            })
-                // When the user navigates in the pagination
-                .on("page", function(event, num) {
-                    $scope.changePage(num); // Change the current page
-                    $scope.$apply(); // Apply changes to be displayed on the view
-                });
-            if ($scope.page != 'upload') // If the page is not "upload"
-                $scope.defineBodyPadding(); // Define bottom padding of the body
-        };
+		// Function that changes the page of the table (by changing displayed transfers)
+		// num: number of the page to display
+		$scope.changePage = function (num) {
+			if (num !== 0)
+				currentPage = num; // Change currentPage
+			$scope.displayedTransfers = []; // Flushing displayed transfers array
+			var displayedQty = configService.getDisplayedTransfersQty();
+			transfers = transfersService.getTransfers();
+			// Loop that adds the correct number of transfers into the displayedTransfers array
+			for (var i = 0, trans = (currentPage - 1) * 5; i < displayedQty; i++ , trans++) {
+				if (transfers[trans] !== undefined) { // If the current transfer exist
+					if ($scope.page != 'upload' || transfers[trans].transferType == 'Upload') { // Check conditions to display current transfer (page different than "upload" or transfer type is "Upload")
+						$scope.displayedTransfers.push(transfers[trans]); // Affect the current displayedTransfer
+					}
+					else { // If transfer shouldn't be displayed
+						i--; // Decrement i. It has for effect to stay at the same index in the display array
+					}
+				}
+				else // If the transfer doesn't exisit
+					i = displayedQty; // Go out of the loop
+			}
+		};
 
-        // Function that defines the bottom padding of the body. The goal is to always have the body above the transfers view in home page
-        $scope.defineBodyPadding = function() {
-            var body = $("body"); // Get the body with jQuery		
-            body.css("padding-bottom", fileTransfersView.css("height")); // Bottom padding is equals to transfers view height
-        };
+		$scope.definePagination = function () {
+			var displayedQty = configService.getDisplayedTransfersQty();
+			$scope.pageCount = (transfersService.getTransfers().length / displayedQty) + 1; // Calculate number of pages from number of transfers to display
+			// init bootpag
+			$('#page-selection').bootpag({
+				total: $scope.pageCount,
+				maxVisible: displayedQty,
+				firstLastUse: true,
+				first: '←',
+				last: '→',
+			})
+				// When the user navigates in the pagination
+				.on("page", function (event, num) {
+					$scope.changePage(num); // Change the current page
+					$scope.$apply(); // Apply changes to be displayed on the view
+				});
+			if ($scope.page != 'upload') // If the page is not "upload"
+				$scope.defineBodyPadding(); // Define bottom padding of the body
+		};
 
-        var fileTransfersView = $("#fileTransfersView"); // Get the view with jQuery
-        var imgChevronCollapse = $("#imgChevronCollapse"); // Get icon with jQuery
-        $scope.definePagination();
-        $scope.changePage(1);
+		// Function that defines the bottom padding of the body. The goal is to always have the body above the transfers view in home page
+		$scope.defineBodyPadding = function () {
+			var body = $("body"); // Get the body with jQuery		
+			body.css("padding-bottom", fileTransfersView.css("height")); // Bottom padding is equals to transfers view height
+		};
 
-        // Detects when the user click on the chevron icon of the transfers view
-        imgChevronCollapse.on('click', function() {
-            // Change the class to display an up or a down chevron (up when view is collapsed)
-            if (imgChevronCollapse.hasClass("fa-chevron-down")) {
-                imgChevronCollapse.removeClass("fa-chevron-down");
-                imgChevronCollapse.addClass("fa-chevron-up");
-            }
-            else if (imgChevronCollapse.hasClass("fa-chevron-up")) {
-                imgChevronCollapse.removeClass("fa-chevron-up");
-                imgChevronCollapse.addClass("fa-chevron-down");
-            }
-        });
+		var fileTransfersView = $("#fileTransfersView"); // Get the view with jQuery
+		var imgChevronCollapse = $("#imgChevronCollapse"); // Get icon with jQuery
 
-        // When the view is collapsed
-        fileTransfersView.on("hidden.bs.collapse", function() {
-            if ($scope.page != 'upload')
-                $scope.defineBodyPadding();
-        });
+		// Detects when the user click on the chevron icon of the transfers view
+		imgChevronCollapse.on('click', function () {
+			// Change the class to display an up or a down chevron (up when view is collapsed)
+			if (imgChevronCollapse.hasClass("fa-chevron-down")) {
+				imgChevronCollapse.removeClass("fa-chevron-down");
+				imgChevronCollapse.addClass("fa-chevron-up");
+			}
+			else if (imgChevronCollapse.hasClass("fa-chevron-up")) {
+				imgChevronCollapse.removeClass("fa-chevron-up");
+				imgChevronCollapse.addClass("fa-chevron-down");
+			}
+		});
 
-        // When the view is shown
-        fileTransfersView.on("shown.bs.collapse", function() {
-            if ($scope.page != 'upload')
-                $scope.defineBodyPadding();
-        });
+		// When the view is collapsed
+		fileTransfersView.on("hidden.bs.collapse", function () {
+			if ($scope.page != 'upload')
+				$scope.defineBodyPadding();
+		});
 
-        // Event that is emitted when the ng-repeat directive (which displays all transfers that must be displayed) has finish to display all transfers			
-        $scope.$on('ngRepeatFinished', function(ngRepeatFinishedEvent) {
-            if ($scope.page != 'upload') // If the page isn't "upload"
-                $scope.defineBodyPadding(); // Define the padding of the body
-        });
-    }])
-    // Directive that fires an event when ng-repeat is finished
-    // (found on the internet: http://stackoverflow.com/questions/15207788/calling-a-function-when-ng-repeat-has-finished)
-    .directive('onFinishRender', function($timeout) {
-        return {
-            restrict: 'A',
-            link: function(scope, element, attr) {
-                if (scope.$last === true) {
-                    $timeout(function() {
-                        scope.$emit(attr.onFinishRender);
-                    });
-                }
-            }
-        };
-    });
+		// When the view is shown
+		fileTransfersView.on("shown.bs.collapse", function () {
+			if ($scope.page != 'upload')
+				$scope.defineBodyPadding();
+		});
+
+		// Event that is emitted when the ng-repeat directive (which displays all transfers that must be displayed) has finish to display all transfers			
+		$scope.$on('ngRepeatFinished', function (ngRepeatFinishedEvent) {
+			if ($scope.page != 'upload') // If the page isn't "upload"
+				$scope.defineBodyPadding(); // Define the padding of the body
+		});
+	}])
+	// Directive that fires an event when ng-repeat is finished
+	// (found on the internet: http://stackoverflow.com/questions/15207788/calling-a-function-when-ng-repeat-has-finished)
+	.directive('onFinishRender', function ($timeout) {
+		return {
+			restrict: 'A',
+			link: function (scope, element, attr) {
+				if (scope.$last === true) {
+					$timeout(function () {
+						scope.$emit(attr.onFinishRender);
+					});
+				}
+			}
+		};
+	});

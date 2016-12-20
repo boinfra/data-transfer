@@ -41,15 +41,10 @@
 							[transfer.transferType=='Upload']"></i> {{transfer.transferType}}
 						</td>
 						<td ng-hide="transfer.status == 'Pending'">
-							<i class="fa" ng-class="{'Failed': 'fa-warning', 'Queued': 'fa-hourglass', 'Succeeded': 'fa-check'} [transfer.status]"></i>							{{transfer.status}}
+							<i class="fa" ng-class="{'Failed': 'fa-warning', 'Queued': 'fa-hourglass', 'Succeeded': 'fa-check'} [transfer.status]"></i>	{{transfer.status}}
 						</td>
 						<td ng-show="transfer.status == 'Pending'">
-							<!--<div class="progress" style="margin-bottom: 0">
-								<div class="progress-bar" role="progressbar" style="width:{{transfer.prog}}%">	
-									<span class="badge">{{transfer.prog | number:0}}%</span>
-								</div>
-							</div>-->
-							<uib-progressbar value="transfer.prog">
+							<uib-progressbar value="transfer.prog" style="margin-bottom: 0px">
 								<span class="badge">{{transfer.prog | number:0}}%</span>
 							</uib-progressbar>
 						</td>

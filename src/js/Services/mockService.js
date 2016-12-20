@@ -6,8 +6,14 @@ angular.module('data-transfer')
 			// Function that uploads a file
 			uploadFile: function (file) {
 				transfers.push(file); // Add the file to the transfers array
-				var prog = 0; // Progress 
-				var time = 0; // Elapsed time of the upload 
+				var prog = file.prog; // Progress 
+				var time;
+				if (file.time !== undefined) {
+					time = file.time; // Elapsed time of the upload 
+				}
+				else {
+					time = 0;
+				}
 				var complete = false; // Indicates if the upload is complete
 				var timeout; // Duration of the upload (changes depending to the name of the file)
 				var finishedSent = false; // Indicates if finished event has been sent. Allows to send it only once.
@@ -34,6 +40,7 @@ angular.module('data-transfer')
 						progress.prog = prog; // Affect this progress to the event
 						progress.file = file; // Affect the file to the event
 						progress.elapsedTime = time / 1000 + ' s'; // Elapsed time (in seconds)
+						progress.time = time;
 						complete = time > timeout; // Check if upload is complete
 						progress.remainingTime = (timeout - time) / 1000 + ' s'; // Remaining time is timeout - time (in seconds)
 						progress.state = transfers[index].status; // State of the progress event is the status of the running transfer

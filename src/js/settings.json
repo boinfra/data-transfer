@@ -3,6 +3,6 @@
 	"autoRetriesQty": 1,
 	"_comment": "Set autoRetriesQty to 0 if you don't want failed uploads to restart automatically",
 	"concurentTransfersQty": 3, 
-	"apiEndpointURL": "http://localhost:8080/api/upload",
+	"apiEndpointURL": "https://demo.virtualskeleton.ch/api/upload",
 	"displayedTransfersQty": 15
 }
