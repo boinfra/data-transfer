@@ -152,12 +152,27 @@ angular.module('data-transfer')
 			// Function that resumes the upload
 			resume: function (trans) {
 				var index = transfers.indexOf(trans); // Get the index of the file in the transfers array
-				transfers[index].status = 'Pending'; // Set status to Pending
+				if (index !== -1) {
+					transfers[index].status = 'Pending'; // Set status to Pending
+				}
+				else {
+					trans.status = 'Pending';
+					this.uploadFile(trans);
+				}
 			},
 			// Function that stops the upload
 			stop: function (trans) {
 				var index = transfers.indexOf(trans); // Get the index of the file in the transfers array
-				transfers[index].status = 'Queued'; // Set status to Queued
+				if (index !== -1) {
+					transfers[index].status = 'Queued'; // Set status to Queued
+				}
+				else {
+					trans.status = 'Queued';
+					trans.time = 0;
+					trans.prog = 0;
+					trans.elapsedTime = '';
+					trans.remainingTime = '';
+				}
 			}
 		};
 	}]);
@@ -206,10 +221,10 @@ angular.module('data-transfer')
 		// Loads transfers to run
 		$(document).ready(function () {
 			transfers = JSON.parse(localStorage.getItem('transfers'));
-			if (configService.getAutoStart()) {
-				for (var i = 0; i < transfers.length; i++) {
-					if(transfers[i].status == 'Paused') {
-						runningTransfers.push(transfers[i]);
+			for (var i = 0; i < transfers.length; i++) {
+				if (transfers[i].status == 'Paused') {
+					runningTransfers.push(transfers[i]);
+					if (configService.getAutoStart()) {
 						run(transfers[i]);
 					}
 				}
@@ -262,11 +277,14 @@ angular.module('data-transfer')
 					run(trans); // Run the transfer
 				}
 				else { // If the limit of autoRetries has been reached
-					// Look for the next queued transfer in the transfers array
-					for (var transfersCount = 0; transfersCount < transfers.length; transfersCount++) {
-						if (transfers[transfersCount].status === 'Queued') {
-							run(transfers[transfersCount]); // Run this transfer
-							transfersCount = transfers.length; // Out of the loop
+					runningTransfers.splice(index, 1); // Remove failed transfer from running transfers array
+					if (configService.getAutoStart()) {
+						// Look for the next queued transfer in the transfers array
+						for (var transfersCount = 0; transfersCount < transfers.length; transfersCount++) {
+							if (transfers[transfersCount].status === 'Queued') {
+								run(transfers[transfersCount]); // Run this transfer
+								transfersCount = transfers.length; // Out of the loop
+							}
 						}
 					}
 				}
@@ -331,7 +349,9 @@ angular.module('data-transfer')
 			// Function that stops transfer
 			stop: function (trans) {
 				var index = runningTransfers.indexOf(trans); // Get the index in running transfers
-				runningTransfers.splice(index, 1); // Remove transfer from running transfers array
+				if (trans.status === 'Pending') {
+					runningTransfers.splice(index, 1); // Remove transfer from running transfers array
+				}
 				service.stop(trans); // Stop transfer
 			}
 		};
@@ -339,23 +359,23 @@ angular.module('data-transfer')
 ;
 angular.module('data-transfer')
 
-	.factory('uploadService', ['$resource', 'configService', function ($resource, configService) {
+	.factory('uploadService', ['$resource', '$http', 'configService', function ($resource, $http, configService) {
 		var acceptedExtensions = ['*'];
 		var url = configService.getApiEndpointURL();
 		return {
 			uploadFile: function (file) {
 
+				var uploadFormData = new FormData();
+				uploadFormData.append('file', file);
 				var Upload = $resource(url, {}, {
 					post: {
 						method: 'POST',
 						headers: {
 							'Authorization': 'Basic ZGVtb0B2aXJ0dWFsc2tlbGV0b24uY2g6ZGVtbw==',
-							'Content-Type': 'multipart/form-data'
+							'Content-Type': undefined
 						}
 					}
 				});
-				Upload.filename = file.name;
-				Upload.content = file.content;
 				Upload.post();
 			}
 		};

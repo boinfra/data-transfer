@@ -84,12 +84,27 @@ angular.module('data-transfer')
 			// Function that resumes the upload
 			resume: function (trans) {
 				var index = transfers.indexOf(trans); // Get the index of the file in the transfers array
-				transfers[index].status = 'Pending'; // Set status to Pending
+				if (index !== -1) {
+					transfers[index].status = 'Pending'; // Set status to Pending
+				}
+				else {
+					trans.status = 'Pending';
+					this.uploadFile(trans);
+				}
 			},
 			// Function that stops the upload
 			stop: function (trans) {
 				var index = transfers.indexOf(trans); // Get the index of the file in the transfers array
-				transfers[index].status = 'Queued'; // Set status to Queued
+				if (index !== -1) {
+					transfers[index].status = 'Queued'; // Set status to Queued
+				}
+				else {
+					trans.status = 'Queued';
+					trans.time = 0;
+					trans.prog = 0;
+					trans.elapsedTime = '';
+					trans.remainingTime = '';
+				}
 			}
 		};
 	}]);
