@@ -1,7 +1,7 @@
 angular.module('data-transfer')
 
 	.factory('transfersService', ['serviceFactory', 'configService', function (serviceFactory, configService) {
-		var service = serviceFactory.getService('mock'); // Service used to upload files ('mock' or 'upload')
+		var service = serviceFactory.getService('upload'); // Service used to upload files ('mock' or 'upload')
 		var transfers = []; // Array that contains all transfers
 		var runningTransfers = []; // Array that contains all transfers that are running
 		var concurentTransfers = configService.getConcurentTransfersQty(); // Get the number of transfers that can run at the same time
@@ -15,7 +15,7 @@ angular.module('data-transfer')
 
 		// Event triggered when the user enters the page
 		// Loads transfers to run
-		$(document).ready(function () {
+		/*$(document).ready(function () {
 			transfers = JSON.parse(localStorage.getItem('transfers'));
 			for (var i = 0; i < transfers.length; i++) {
 				if (transfers[i].status == 'Paused') {
@@ -28,7 +28,7 @@ angular.module('data-transfer')
 			var loaded = $.Event('loaded');
 			$(window).trigger(loaded);
 		});
-
+*/
 		// Progress event sent by the service (mock or upload)
 		$(window).on('progress', function (e) {
 			// Search the corresponding transfer in transfers array
@@ -56,8 +56,8 @@ angular.module('data-transfer')
 				}
 			}
 
-			localStorage.setItem('transfers', JSON.stringify(transfersToSave));
-			// localStorage.setItem('transfers', '[]');
+			// localStorage.setItem('transfers', JSON.stringify(transfersToSave));
+			//localStorage.setItem('transfers', '[]');
 		};
 
 		// Event triggered by the service when an upload is finished
@@ -101,14 +101,16 @@ angular.module('data-transfer')
 		// Object returned by transfersService 
 		return {
 			// Function that adds a transfer to the transfers array
-			pushTransfer: function (trans) {
+			pushTransfer: function (trans, file) {
 				trans.autoRetries = 0; // The transfer hasn't been retried yet
 				trans.prog = 0;
 				transfers.push(trans); // Add transfer
 				if (configService.getAutoStart()) { // If it should start automatically
 					if (runningTransfers.length < concurentTransfers) { // If the limit of concurent transfers is not reached
 						runningTransfers.push(trans); // Add the transfer to the running transfers array
-						run(trans); // Run the transfer
+						// TODO: Run with 'file' object instead of trans
+						//run(trans); // Run the transfer
+						//service.uploadFile(file);
 					}
 				}
 			},

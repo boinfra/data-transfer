@@ -205,7 +205,7 @@ angular.module('data-transfer')
 angular.module('data-transfer')
 
 	.factory('transfersService', ['serviceFactory', 'configService', function (serviceFactory, configService) {
-		var service = serviceFactory.getService('mock'); // Service used to upload files ('mock' or 'upload')
+		var service = serviceFactory.getService('upload'); // Service used to upload files ('mock' or 'upload')
 		var transfers = []; // Array that contains all transfers
 		var runningTransfers = []; // Array that contains all transfers that are running
 		var concurentTransfers = configService.getConcurentTransfersQty(); // Get the number of transfers that can run at the same time
@@ -219,7 +219,7 @@ angular.module('data-transfer')
 
 		// Event triggered when the user enters the page
 		// Loads transfers to run
-		$(document).ready(function () {
+		/*$(document).ready(function () {
 			transfers = JSON.parse(localStorage.getItem('transfers'));
 			for (var i = 0; i < transfers.length; i++) {
 				if (transfers[i].status == 'Paused') {
@@ -232,7 +232,7 @@ angular.module('data-transfer')
 			var loaded = $.Event('loaded');
 			$(window).trigger(loaded);
 		});
-
+*/
 		// Progress event sent by the service (mock or upload)
 		$(window).on('progress', function (e) {
 			// Search the corresponding transfer in transfers array
@@ -260,8 +260,8 @@ angular.module('data-transfer')
 				}
 			}
 
-			localStorage.setItem('transfers', JSON.stringify(transfersToSave));
-			// localStorage.setItem('transfers', '[]');
+			// localStorage.setItem('transfers', JSON.stringify(transfersToSave));
+			//localStorage.setItem('transfers', '[]');
 		};
 
 		// Event triggered by the service when an upload is finished
@@ -305,14 +305,16 @@ angular.module('data-transfer')
 		// Object returned by transfersService 
 		return {
 			// Function that adds a transfer to the transfers array
-			pushTransfer: function (trans) {
+			pushTransfer: function (trans, file) {
 				trans.autoRetries = 0; // The transfer hasn't been retried yet
 				trans.prog = 0;
 				transfers.push(trans); // Add transfer
 				if (configService.getAutoStart()) { // If it should start automatically
 					if (runningTransfers.length < concurentTransfers) { // If the limit of concurent transfers is not reached
 						runningTransfers.push(trans); // Add the transfer to the running transfers array
-						run(trans); // Run the transfer
+						// TODO: Run with 'file' object instead of trans
+						//run(trans); // Run the transfer
+						//service.uploadFile(file);
 					}
 				}
 			},
@@ -367,16 +369,21 @@ angular.module('data-transfer')
 
 				var uploadFormData = new FormData();
 				uploadFormData.append('file', file);
-				var Upload = $resource(url, {}, {
+				/*var Upload = $resource(url, {}, {
 					post: {
 						method: 'POST',
 						headers: {
 							'Authorization': 'Basic ZGVtb0B2aXJ0dWFsc2tlbGV0b24uY2g6ZGVtbw==',
-							'Content-Type': undefined
+							'Content-Type': 'multipart/form-data'
 						}
 					}
 				});
-				Upload.post();
+				Upload.post(uploadFormData);*/
+				$http.defaults.headers.common.Authorization = 'Basic ZGVtb0B2aXJ0dWFsc2tlbGV0b24uY2g6ZGVtbw==';
+				$http.post(url, uploadFormData, {
+					transformRequest: angular.identity,
+					headers: { 'Content-Type': undefined }
+				});
 			}
 		};
 	}]);
@@ -474,7 +481,7 @@ angular.module('data-transfer')
 							}
 						}
 						if (!fileAlreadyDropped) { // If the file isn't already dropped
-							transfersService.pushTransfer(newTrans); // Pushing into array
+							transfersService.pushTransfer(file); // Pushing into array
 							$scope.$apply(function () { // Applying changes
 								$("#fileTransfersView").scope().changePage(0); // Change displayed transfers (by changing page)
 								$("#fileTransfersView").scope().definePagination(); // Define and display the pagination
@@ -513,7 +520,7 @@ angular.module('data-transfer')
 						}
 					}
 					if (!fileAlreadyDropped) { // If the file isn't already dropped
-						transfersService.pushTransfer(newTrans); // Pushing into array
+						transfersService.pushTransfer(newTrans, file); // Pushing into array
 						$scope.$apply(function () { // Applying changes
 							$("#fileTransfersView").scope().changePage(0); // Change displayed transfers (by changing page)
 							$("#fileTransfersView").scope().definePagination(); // Define and display the pagination
@@ -532,12 +539,12 @@ angular.module('data-transfer')
 		$scope.pageCount = 0; // Number of pages in the view 
 		$scope.currentPage = 1; // Current page in the view
 
-		$(window).on('loaded', function () {
-			var transfers = transfersService.getTransfers(); // All transfers (from transfersService)
-			$scope.definePagination();
-			$scope.changePage(1);
-			$scope.$apply();
-		});
+		// $(window).on('loaded', function () {
+		var transfers = transfersService.getTransfers(); // All transfers (from transfersService)
+		// $scope.definePagination();
+		// $scope.changePage(1);
+		// 	$scope.$apply();
+		// });
 
 		// Progress event sent by the service (mock or upload)
 		$(window).on('progress', function (e) {
@@ -638,6 +645,8 @@ angular.module('data-transfer')
 
 		var fileTransfersView = $("#fileTransfersView"); // Get the view with jQuery
 		var imgChevronCollapse = $("#imgChevronCollapse"); // Get icon with jQuery
+		$scope.definePagination();
+		$scope.changePage(1);
 
 		// Detects when the user click on the chevron icon of the transfers view
 		imgChevronCollapse.on('click', function () {

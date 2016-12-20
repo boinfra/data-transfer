@@ -91,7 +91,7 @@ angular.module('data-transfer')
 							}
 						}
 						if (!fileAlreadyDropped) { // If the file isn't already dropped
-							transfersService.pushTransfer(newTrans); // Pushing into array
+							transfersService.pushTransfer(file); // Pushing into array
 							$scope.$apply(function () { // Applying changes
 								$("#fileTransfersView").scope().changePage(0); // Change displayed transfers (by changing page)
 								$("#fileTransfersView").scope().definePagination(); // Define and display the pagination
@@ -130,7 +130,7 @@ angular.module('data-transfer')
 						}
 					}
 					if (!fileAlreadyDropped) { // If the file isn't already dropped
-						transfersService.pushTransfer(newTrans); // Pushing into array
+						transfersService.pushTransfer(newTrans, file); // Pushing into array
 						$scope.$apply(function () { // Applying changes
 							$("#fileTransfersView").scope().changePage(0); // Change displayed transfers (by changing page)
 							$("#fileTransfersView").scope().definePagination(); // Define and display the pagination

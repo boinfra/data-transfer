@@ -6,12 +6,12 @@ angular.module('data-transfer')
 		$scope.pageCount = 0; // Number of pages in the view 
 		$scope.currentPage = 1; // Current page in the view
 
-		$(window).on('loaded', function () {
-			var transfers = transfersService.getTransfers(); // All transfers (from transfersService)
-			$scope.definePagination();
-			$scope.changePage(1);
-			$scope.$apply();
-		});
+		// $(window).on('loaded', function () {
+		var transfers = transfersService.getTransfers(); // All transfers (from transfersService)
+		// $scope.definePagination();
+		// $scope.changePage(1);
+		// 	$scope.$apply();
+		// });
 
 		// Progress event sent by the service (mock or upload)
 		$(window).on('progress', function (e) {
@@ -112,6 +112,8 @@ angular.module('data-transfer')
 
 		var fileTransfersView = $("#fileTransfersView"); // Get the view with jQuery
 		var imgChevronCollapse = $("#imgChevronCollapse"); // Get icon with jQuery
+		$scope.definePagination();
+		$scope.changePage(1);
 
 		// Detects when the user click on the chevron icon of the transfers view
 		imgChevronCollapse.on('click', function () {
