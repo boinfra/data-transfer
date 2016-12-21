@@ -214,6 +214,10 @@ angular.module('data-transfer')
 
 		// Function that starts a transfer
 		function run(file) {
+			var index = transfers.indexOf(file);
+			var transVM = transfersVM[index];
+			transVM.status = 'Pending';
+			transVM.prog = 100;
 			service.uploadFile(file); // Upload the file in the service
 		}
 
@@ -270,14 +274,15 @@ angular.module('data-transfer')
 			var trans = transfers[index]; // Get the file in the transfers (trans is shorter than transfers[index])
 			var transVM = transfersVM[index];
 			if (e.state == 'Failed') { // If upload has failed
-				if (e.file.autoRetries < configService.getAutoRetriesQty()) { // Check if the limit of autoRetries hasn't been reached
-					trans.autoRetries++; // Incerment autoRetries counter of this file
-					trans.status = 'Queued'; // Status is Queued, so the service knows it should restart the upload of this file from the beginning
-					trans.prog = 0;
-					trans.time = 0;
+				if (transVM.autoRetries < configService.getAutoRetriesQty()) { // Check if the limit of autoRetries hasn't been reached
+					transVM.autoRetries++; // Incerment autoRetries counter of this file
+					transVM.status = 'Queued'; // Status is Queued, so the service knows it should restart the upload of this file from the beginning
+					transVM.prog = 0;
+					transVM.time = 0;
 					run(trans); // Run the transfer
 				}
 				else { // If the limit of autoRetries has been reached
+					transVM.status = e.state;
 					runningTransfers.splice(index, 1); // Remove failed transfer from running transfers array
 					if (configService.getAutoStart()) {
 						// Look for the next queued transfer in the transfers array
@@ -291,7 +296,6 @@ angular.module('data-transfer')
 				}
 			}
 			else if (e.state == 'Succeeded') { // If upload has succeeded
-				console.debug('success');
 				transVM.status = e.state;
 				var offset = concurentTransfers - 1; // Offset for the index to get the next transfer
 				transfersCompleted++; // Incerment the counter of completed transfers
@@ -375,16 +379,26 @@ angular.module('data-transfer')
 				var uploadFormData = new FormData();
 				uploadFormData.append('file', file);
 				$http.defaults.headers.common.Authorization = 'Basic ZGVtb0B2aXJ0dWFsc2tlbGV0b24uY2g6ZGVtbw==';
+
 				$http.post(url, uploadFormData, {
 					transformRequest: angular.identity,
 					headers: { 'Content-Type': undefined }
-				}).success(function (response) {
+				})
+				.success(function (response) {
 					var finished = $.Event('complete'); // Sent when upload is complete (when time = timeout)
 					finished.file = file;
 					finished.state = 'Succeeded';
 					$(window).trigger(finished); // Trigger the finished event
+				})
+				.error(function (response) {
+					var finished = $.Event('complete'); // Sent when upload is complete (when time = timeout)
+					finished.file = file;
+					finished.state = 'Failed';
+					$(window).trigger(finished); // Trigger the finished event
 				});
-			}
+			},
+			pause: function(){},
+			stop: function(){}
 		};
 	}]);
 ;

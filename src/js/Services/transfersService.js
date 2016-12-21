@@ -10,6 +10,10 @@ angular.module('data-transfer')
 
 		// Function that starts a transfer
 		function run(file) {
+			var index = transfers.indexOf(file);
+			var transVM = transfersVM[index];
+			transVM.status = 'Pending';
+			transVM.prog = 100;
 			service.uploadFile(file); // Upload the file in the service
 		}
 
@@ -66,14 +70,15 @@ angular.module('data-transfer')
 			var trans = transfers[index]; // Get the file in the transfers (trans is shorter than transfers[index])
 			var transVM = transfersVM[index];
 			if (e.state == 'Failed') { // If upload has failed
-				if (e.file.autoRetries < configService.getAutoRetriesQty()) { // Check if the limit of autoRetries hasn't been reached
-					trans.autoRetries++; // Incerment autoRetries counter of this file
-					trans.status = 'Queued'; // Status is Queued, so the service knows it should restart the upload of this file from the beginning
-					trans.prog = 0;
-					trans.time = 0;
+				if (transVM.autoRetries < configService.getAutoRetriesQty()) { // Check if the limit of autoRetries hasn't been reached
+					transVM.autoRetries++; // Incerment autoRetries counter of this file
+					transVM.status = 'Queued'; // Status is Queued, so the service knows it should restart the upload of this file from the beginning
+					transVM.prog = 0;
+					transVM.time = 0;
 					run(trans); // Run the transfer
 				}
 				else { // If the limit of autoRetries has been reached
+					transVM.status = e.state;
 					runningTransfers.splice(index, 1); // Remove failed transfer from running transfers array
 					if (configService.getAutoStart()) {
 						// Look for the next queued transfer in the transfers array
@@ -87,7 +92,6 @@ angular.module('data-transfer')
 				}
 			}
 			else if (e.state == 'Succeeded') { // If upload has succeeded
-				console.debug('success');
 				transVM.status = e.state;
 				var offset = concurentTransfers - 1; // Offset for the index to get the next transfer
 				transfersCompleted++; // Incerment the counter of completed transfers
