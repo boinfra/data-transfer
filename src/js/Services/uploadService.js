@@ -8,20 +8,15 @@ angular.module('data-transfer')
 
 				var uploadFormData = new FormData();
 				uploadFormData.append('file', file);
-				/*var Upload = $resource(url, {}, {
-					post: {
-						method: 'POST',
-						headers: {
-							'Authorization': 'Basic ZGVtb0B2aXJ0dWFsc2tlbGV0b24uY2g6ZGVtbw==',
-							'Content-Type': 'multipart/form-data'
-						}
-					}
-				});
-				Upload.post(uploadFormData);*/
 				$http.defaults.headers.common.Authorization = 'Basic ZGVtb0B2aXJ0dWFsc2tlbGV0b24uY2g6ZGVtbw==';
 				$http.post(url, uploadFormData, {
 					transformRequest: angular.identity,
 					headers: { 'Content-Type': undefined }
+				}).success(function (response) {
+					var finished = $.Event('complete'); // Sent when upload is complete (when time = timeout)
+					finished.file = file;
+					finished.state = 'Succeeded';
+					$(window).trigger(finished); // Trigger the finished event
 				});
 			}
 		};

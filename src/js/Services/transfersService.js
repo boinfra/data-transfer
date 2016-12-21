@@ -3,14 +3,14 @@ angular.module('data-transfer')
 	.factory('transfersService', ['serviceFactory', 'configService', function (serviceFactory, configService) {
 		var service = serviceFactory.getService('upload'); // Service used to upload files ('mock' or 'upload')
 		var transfers = []; // Array that contains all transfers
+		var transfersVM = []; // Transfers ViewModels
 		var runningTransfers = []; // Array that contains all transfers that are running
 		var concurentTransfers = configService.getConcurentTransfersQty(); // Get the number of transfers that can run at the same time
 		var transfersCompleted = 0; // Number of completed transfers
 
 		// Function that starts a transfer
-		function run(trans) {
-			trans.status = 'Pending'; // Status is Pending
-			service.uploadFile(trans); // Upload the file in the service
+		function run(file) {
+			service.uploadFile(file); // Upload the file in the service
 		}
 
 		// Event triggered when the user enters the page
@@ -32,13 +32,13 @@ angular.module('data-transfer')
 		// Progress event sent by the service (mock or upload)
 		$(window).on('progress', function (e) {
 			// Search the corresponding transfer in transfers array
-			for (var i = 0; i < transfers.length; i++) {
-				var currentTransfer = transfers[i];
+			for (var i = 0; i < transfersVM.length; i++) {
+				var currentTransfer = transfersVM[i];
 				if (currentTransfer === e.file) { // If corresponding
 					currentTransfer.status = e.state; // Set transfer status
 					currentTransfer.prog = e.prog; // Set transfer progress (to display the progressBar)
 					currentTransfer.time = e.time;
-					i = transfers.length; // Out of the loop
+					i = transfersVM.length; // Out of the loop
 				}
 			}
 		});
@@ -64,6 +64,7 @@ angular.module('data-transfer')
 		$(window).on('complete', function (e) {
 			var index = transfers.indexOf(e.file); // Get the index of the file in the transfers array
 			var trans = transfers[index]; // Get the file in the transfers (trans is shorter than transfers[index])
+			var transVM = transfersVM[index];
 			if (e.state == 'Failed') { // If upload has failed
 				if (e.file.autoRetries < configService.getAutoRetriesQty()) { // Check if the limit of autoRetries hasn't been reached
 					trans.autoRetries++; // Incerment autoRetries counter of this file
@@ -86,6 +87,8 @@ angular.module('data-transfer')
 				}
 			}
 			else if (e.state == 'Succeeded') { // If upload has succeeded
+				console.debug('success');
+				transVM.status = e.state;
 				var offset = concurentTransfers - 1; // Offset for the index to get the next transfer
 				transfersCompleted++; // Incerment the counter of completed transfers
 				if (transfersCompleted < transfers.length - offset) { // If there is still queued transfers
@@ -104,39 +107,41 @@ angular.module('data-transfer')
 			pushTransfer: function (trans, file) {
 				trans.autoRetries = 0; // The transfer hasn't been retried yet
 				trans.prog = 0;
-				transfers.push(trans); // Add transfer
+				transfers.push(file); // Add transfer
+				transfersVM.push(trans);
 				if (configService.getAutoStart()) { // If it should start automatically
 					if (runningTransfers.length < concurentTransfers) { // If the limit of concurent transfers is not reached
-						runningTransfers.push(trans); // Add the transfer to the running transfers array
+						runningTransfers.push(file); // Add the transfer to the running transfers array
 						// TODO: Run with 'file' object instead of trans
-						//run(trans); // Run the transfer
-						//service.uploadFile(file);
+						run(file); // Run the transfer
 					}
 				}
 			},
 			// Function that returns all transfers (array)
 			getTransfers: function () {
-				return transfers;
+				return transfersVM;
 			},
 			// Start upload
 			start: function (trans) {
+				var index = transfersVM.indexOf(trans);
+				var file = transfers[index];
 				if (!configService.getAutoStart()) { // If transfer should not start automatically
 					if (runningTransfers.length < concurentTransfers && trans.status === 'Queued') { // If transfer is queued and concurent transfers limit is not reached
 						runningTransfers.push(trans); // Add transfer to transfers array
-						run(trans); // Run transfer
+						run(file); // Run transfer
 					}
-					else if (runningTransfers.length <= concurentTransfers && trans.status === 'Paused') { // If transfer id paused and concurent transfers limit is exceeded
-						service.resume(trans); // Resume transfer
+					else if (runningTransfers.length <= concurentTransfers && trans.status === 'Paused') { // If transfer is paused and concurent transfers limit is exceeded
+						service.resume(file); // Resume transfer
 					}
 				}
 				else { // If transfer should run automatically
 					if (trans.status === 'Queued' || trans.status === 'Failed') { // If transfer is queued or failed
 						trans.prog = 0;
 						trans.time = 0;
-						run(trans); // Run transfer
+						run(file); // Run transfer
 					}
 					else if (trans.status === 'Paused') { // If transfer is paused
-						service.resume(trans); // Resume transfer
+						service.resume(file); // Resume transfer
 					}
 				}
 			},
