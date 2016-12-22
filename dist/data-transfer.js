@@ -223,20 +223,24 @@ angular.module('data-transfer')
 
 		// Event triggered when the user enters the page
 		// Loads transfers to run
-		/*$(document).ready(function () {
-			transfers = JSON.parse(localStorage.getItem('transfers'));
-			for (var i = 0; i < transfers.length; i++) {
-				if (transfers[i].status == 'Paused') {
-					runningTransfers.push(transfers[i]);
-					if (configService.getAutoStart()) {
-						run(transfers[i]);
-					}
-				}
+		$(document).ready(function () {
+			var cookies = document.cookie.split(';');
+			var trans = JSON.parse(cookies[0].substring(cookies[0].indexOf('[')));
+			for(var i = 0; i < trans.length; i++) {
+				var file = new File([""], trans[i].name, {
+					type: trans[i].type, 
+					lastModified: trans[i].lastModified,
+					lastModifiedDate: trans[i].lastModifiedDate,
+					size: trans[i].size,
+					webkitRelativePath: trans[i].webkitRelativePath
+				});
+				transfers.push(file);
 			}
+			transfersVM = JSON.parse(cookies[1].substring(cookies[1].indexOf('[')));
 			var loaded = $.Event('loaded');
 			$(window).trigger(loaded);
 		});
-*/
+
 		// Progress event sent by the service (mock or upload)
 		$(window).on('progress', function (e) {
 			// Search the corresponding transfer in transfers array
@@ -255,17 +259,36 @@ angular.module('data-transfer')
 		// Save currently running transfers or queued transfers
 		window.onbeforeunload = function (e) {
 			var transfersToSave = [];
-			for (var i = 0; i < transfers.length; i++) {
-				if (transfers[i].status !== 'Succeeded') {
-					if (transfers[i].status == 'Pending') {
-						transfers[i].status = 'Paused';
+			var transfersVMToSave = [];
+			for (var i = 0; i < transfersVM.length; i++) {
+				if (transfersVM[i].status !== 'Succeeded') {
+					if (transfersVM[i].status == 'Pending') {
+						transfersVM[i].status = 'Paused';
 					}
-					transfersToSave.push(transfers[i]);
+					var fileData = {
+						file: {
+							lastModified: transfers[i].lastModified,
+							lastModifiedDate: transfers[i].lastModifiedDate,
+							name: transfers[i].name,
+							size: transfers[i].size,
+							type: transfers[i].type,
+							webkitRelativePath: transfers[i].webkitRelativePath
+						},
+						fileVM: {
+							name: transfersVM[i].name,
+							size: transfersVM[i].size,
+							transferType: transfersVM[i].transferType,
+							status: transfersVM[i].status,
+							elapsedTime: transfersVM[i].elapsedTime,
+							remainingTime: transfersVM[i].remainingTime
+						}
+					};
+					transfersToSave.push(fileData.file);
+					transfersVMToSave.push(fileData.fileVM);
 				}
 			}
-
-			// localStorage.setItem('transfers', JSON.stringify(transfersToSave));
-			//localStorage.setItem('transfers', '[]');
+			document.cookie = "transfers=" + JSON.stringify(transfersToSave);
+			document.cookie = "transfersVM=" + JSON.stringify(transfersVMToSave);
 		};
 
 		// Event triggered by the service when an upload is finished
@@ -320,7 +343,6 @@ angular.module('data-transfer')
 				if (configService.getAutoStart()) { // If it should start automatically
 					if (runningTransfers.length < concurentTransfers) { // If the limit of concurent transfers is not reached
 						runningTransfers.push(file); // Add the transfer to the running transfers array
-						// TODO: Run with 'file' object instead of trans
 						run(file); // Run the transfer
 					}
 				}
@@ -349,6 +371,7 @@ angular.module('data-transfer')
 						run(file); // Run transfer
 					}
 					else if (trans.status === 'Paused') { // If transfer is paused
+						trans.status = 'Pending';
 						service.resume(file); // Resume transfer
 					}
 				}
@@ -384,21 +407,24 @@ angular.module('data-transfer')
 					transformRequest: angular.identity,
 					headers: { 'Content-Type': undefined }
 				})
-				.success(function (response) {
-					var finished = $.Event('complete'); // Sent when upload is complete (when time = timeout)
-					finished.file = file;
-					finished.state = 'Succeeded';
-					$(window).trigger(finished); // Trigger the finished event
-				})
-				.error(function (response) {
-					var finished = $.Event('complete'); // Sent when upload is complete (when time = timeout)
-					finished.file = file;
-					finished.state = 'Failed';
-					$(window).trigger(finished); // Trigger the finished event
-				});
+					.success(function (response) {
+						var finished = $.Event('complete'); // Sent when upload is complete (when time = timeout)
+						finished.file = file;
+						finished.state = 'Succeeded';
+						$(window).trigger(finished); // Trigger the finished event
+					})
+					.error(function (response) {
+						var finished = $.Event('complete'); // Sent when upload is complete (when time = timeout)
+						finished.file = file;
+						finished.state = 'Failed';
+						$(window).trigger(finished); // Trigger the finished event
+					});
 			},
-			pause: function(){},
-			stop: function(){}
+			pause: function () { },
+			stop: function () { },
+			resume: function (file) {
+				this.uploadFile(file);
+			}
 		};
 	}]);
 ;
@@ -553,12 +579,12 @@ angular.module('data-transfer')
 		$scope.pageCount = 0; // Number of pages in the view 
 		$scope.currentPage = 1; // Current page in the view
 
-		// $(window).on('loaded', function () {
-		var transfers = transfersService.getTransfers(); // All transfers (from transfersService)
-		// $scope.definePagination();
-		// $scope.changePage(1);
-		// 	$scope.$apply();
-		// });
+		$(window).on('loaded', function () {
+			var transfers = transfersService.getTransfers(); // All transfers (from transfersService)
+			$scope.definePagination();
+			$scope.changePage(1);
+			$scope.$apply();
+		});
 
 		// Progress event sent by the service (mock or upload)
 		$(window).on('progress', function (e) {
