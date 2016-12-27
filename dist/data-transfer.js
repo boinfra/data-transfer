@@ -1,4 +1,4 @@
-angular.module('data-transfer', ['ngResource', 'ui.bootstrap']); // Creation of the main module of the framework
+angular.module('data-transfer', ['ui.bootstrap']); // Creation of the main module of the framework
 ;
 angular.module('data-transfer')
 
@@ -205,200 +205,89 @@ angular.module('data-transfer')
 angular.module('data-transfer')
 
 	.factory('transfersService', ['serviceFactory', 'configService', function (serviceFactory, configService) {
-		var service = serviceFactory.getService('upload'); // Service used to upload files ('mock' or 'upload')
-		var transfers = []; // Array that contains all transfers
-		var transfersVM = []; // Transfers ViewModels
-		var runningTransfers = []; // Array that contains all transfers that are running
+
+		var files = [];
+		var autoRetries = [];
+		var filePushed = $.Event('filePushed');
+		var service = serviceFactory.getService('upload');
+		var runningTransfers = [];
 		var concurentTransfers = configService.getConcurentTransfersQty(); // Get the number of transfers that can run at the same time
 		var transfersCompleted = 0; // Number of completed transfers
 
-		// Function that starts a transfer
-		function run(file) {
-			var index = transfers.indexOf(file);
-			var transVM = transfersVM[index];
-			transVM.status = 'Pending';
-			transVM.prog = 100;
-			service.uploadFile(file); // Upload the file in the service
-		}
-
-		// Event triggered when the user enters the page
-		// Loads transfers to run
-		$(document).ready(function () {
-			var cookies = document.cookie.split(';');
-			var trans = JSON.parse(cookies[0].substring(cookies[0].indexOf('[')));
-			for(var i = 0; i < trans.length; i++) {
-				var file = new File([""], trans[i].name, {
-					type: trans[i].type, 
-					lastModified: trans[i].lastModified,
-					lastModifiedDate: trans[i].lastModifiedDate,
-					size: trans[i].size,
-					webkitRelativePath: trans[i].webkitRelativePath
-				});
-				transfers.push(file);
-			}
-			transfersVM = JSON.parse(cookies[1].substring(cookies[1].indexOf('[')));
-			var loaded = $.Event('loaded');
-			$(window).trigger(loaded);
-		});
-
-		// Progress event sent by the service (mock or upload)
-		$(window).on('progress', function (e) {
-			// Search the corresponding transfer in transfers array
-			for (var i = 0; i < transfersVM.length; i++) {
-				var currentTransfer = transfersVM[i];
-				if (currentTransfer === e.file) { // If corresponding
-					currentTransfer.status = e.state; // Set transfer status
-					currentTransfer.prog = e.prog; // Set transfer progress (to display the progressBar)
-					currentTransfer.time = e.time;
-					i = transfersVM.length; // Out of the loop
-				}
-			}
-		});
-
-		// Event triggered when the user exits the page
-		// Save currently running transfers or queued transfers
-		window.onbeforeunload = function (e) {
-			var transfersToSave = [];
-			var transfersVMToSave = [];
-			for (var i = 0; i < transfersVM.length; i++) {
-				if (transfersVM[i].status !== 'Succeeded') {
-					if (transfersVM[i].status == 'Pending') {
-						transfersVM[i].status = 'Paused';
-					}
-					var fileData = {
-						file: {
-							lastModified: transfers[i].lastModified,
-							lastModifiedDate: transfers[i].lastModifiedDate,
-							name: transfers[i].name,
-							size: transfers[i].size,
-							type: transfers[i].type,
-							webkitRelativePath: transfers[i].webkitRelativePath
-						},
-						fileVM: {
-							name: transfersVM[i].name,
-							size: transfersVM[i].size,
-							transferType: transfersVM[i].transferType,
-							status: transfersVM[i].status,
-							elapsedTime: transfersVM[i].elapsedTime,
-							remainingTime: transfersVM[i].remainingTime
-						}
-					};
-					transfersToSave.push(fileData.file);
-					transfersVMToSave.push(fileData.fileVM);
-				}
-			}
-			document.cookie = "transfers=" + JSON.stringify(transfersToSave);
-			document.cookie = "transfersVM=" + JSON.stringify(transfersVMToSave);
-		};
+		var run = $.Event('run');
+		run.state = 'Pending';
 
 		// Event triggered by the service when an upload is finished
 		$(window).on('complete', function (e) {
-			var index = transfers.indexOf(e.file); // Get the index of the file in the transfers array
-			var trans = transfers[index]; // Get the file in the transfers (trans is shorter than transfers[index])
-			var transVM = transfersVM[index];
-			if (e.state == 'Failed') { // If upload has failed
-				if (transVM.autoRetries < configService.getAutoRetriesQty()) { // Check if the limit of autoRetries hasn't been reached
-					transVM.autoRetries++; // Incerment autoRetries counter of this file
-					transVM.status = 'Queued'; // Status is Queued, so the service knows it should restart the upload of this file from the beginning
-					transVM.prog = 0;
-					transVM.time = 0;
-					run(trans); // Run the transfer
-				}
-				else { // If the limit of autoRetries has been reached
-					transVM.status = e.state;
-					runningTransfers.splice(index, 1); // Remove failed transfer from running transfers array
-					if (configService.getAutoStart()) {
-						// Look for the next queued transfer in the transfers array
-						for (var transfersCount = 0; transfersCount < transfers.length; transfersCount++) {
-							if (transfers[transfersCount].status === 'Queued') {
-								run(transfers[transfersCount]); // Run this transfer
-								transfersCount = transfers.length; // Out of the loop
-							}
-						}
+			var index = files.indexOf(e.file); // Get the index of the file in the transfers array
+			var offset = concurentTransfers - 1; // Offset for the index to get the next transfer
+			if (e.state == 'Succeeded') { // If upload has succeeded
+				transfersCompleted++; // Incerment the counter of completed transfers
+				if (transfersCompleted < files.length - offset) { // If there is still queued transfers
+					runningTransfers.splice(index, 1); // Remove succeeded transfer from running transfers array
+					if (configService.getAutoStart()) { // If upload should start automatically
+						runningTransfers.push(files[transfersCompleted + offset]); // Add next queued transfer to running transfers array
+						service.uploadFile(files[transfersCompleted + offset]); // Run this transfer
+						run.file = files[transfersCompleted + offset];
+						$(window).trigger(run);
 					}
 				}
 			}
-			else if (e.state == 'Succeeded') { // If upload has succeeded
-				transVM.status = e.state;
-				var offset = concurentTransfers - 1; // Offset for the index to get the next transfer
-				transfersCompleted++; // Incerment the counter of completed transfers
-				if (transfersCompleted < transfers.length - offset) { // If there is still queued transfers
-					runningTransfers.splice(index, 1); // Remove succeeded transfer from running transfers array
-					if (configService.getAutoStart()) { // If upload should start automatically
-						runningTransfers.push(transfers[transfersCompleted + offset]); // Add next queued transfer to running transfers array
-						run(transfers[transfersCompleted + offset]); // Run this transfer
+			else if (e.state == 'Failed') {
+				if (autoRetries[index] < configService.getAutoRetriesQty()) {
+					service.uploadFile(e.file);
+					run.file = e.file;
+					$(window).trigger(run);
+					autoRetries[index]++;
+				}
+				else {
+					transfersCompleted++;
+					if (configService.getAutoStart() && transfersCompleted + offset < files.length) {
+						service.uploadFile(files[transfersCompleted + offset]); // Run this transfer
+						run.file = files[transfersCompleted + offset];
+						$(window).trigger(run);
 					}
 				}
 			}
 		});
 
-		// Object returned by transfersService 
 		return {
-			// Function that adds a transfer to the transfers array
-			pushTransfer: function (trans, file) {
-				trans.autoRetries = 0; // The transfer hasn't been retried yet
-				trans.prog = 0;
-				transfers.push(file); // Add transfer
-				transfersVM.push(trans);
-				if (configService.getAutoStart()) { // If it should start automatically
-					if (runningTransfers.length < concurentTransfers) { // If the limit of concurent transfers is not reached
-						runningTransfers.push(file); // Add the transfer to the running transfers array
-						run(file); // Run the transfer
-					}
+			pushFile: function (file) {
+				files.push(file);
+				autoRetries.push(0);
+				var service = serviceFactory.getService('upload');
+				filePushed.status = configService.getAutoStart() ? 'Pending' : 'Queued';
+				filePushed.file = file;
+				$(window).trigger(filePushed);
+				if (configService.getAutoStart()) {
+					this.start(file);
 				}
 			},
-			// Function that returns all transfers (array)
-			getTransfers: function () {
-				return transfersVM;
+			getFiles: function () {
+				return files;
 			},
-			// Start upload
-			start: function (trans) {
-				var index = transfersVM.indexOf(trans);
-				var file = transfers[index];
-				if (!configService.getAutoStart()) { // If transfer should not start automatically
-					if (runningTransfers.length < concurentTransfers && trans.status === 'Queued') { // If transfer is queued and concurent transfers limit is not reached
-						runningTransfers.push(trans); // Add transfer to transfers array
-						run(file); // Run transfer
-					}
-					else if (runningTransfers.length <= concurentTransfers && trans.status === 'Paused') { // If transfer is paused and concurent transfers limit is exceeded
-						service.resume(file); // Resume transfer
-					}
-				}
-				else { // If transfer should run automatically
-					if (trans.status === 'Queued' || trans.status === 'Failed') { // If transfer is queued or failed
-						trans.prog = 0;
-						trans.time = 0;
-						run(file); // Run transfer
-					}
-					else if (trans.status === 'Paused') { // If transfer is paused
-						trans.status = 'Pending';
-						service.resume(file); // Resume transfer
-					}
+			start: function (file) {
+				if (runningTransfers.length < concurentTransfers) {
+					runningTransfers.push(file);
+					service.uploadFile(file);
+					run.file = file;
+					$(window).trigger(run);
 				}
 			},
-			// Function that supsends transfer
-			pause: function (trans) {
-				service.pause(trans);
-			},
-			// Function that stops transfer
-			stop: function (trans) {
-				var index = runningTransfers.indexOf(trans); // Get the index in running transfers
-				if (trans.status === 'Pending') {
-					runningTransfers.splice(index, 1); // Remove transfer from running transfers array
-				}
-				service.stop(trans); // Stop transfer
+			getRunningTransfers: function () {
+				return runningTransfers;
 			}
 		};
-	}]); 
+
+	}]);
 ;
 angular.module('data-transfer')
 
-	.factory('uploadService', ['$resource', '$http', 'configService', function ($resource, $http, configService) {
+	.factory('uploadService', ['$http', 'configService', function ($http, configService) {
 		var acceptedExtensions = ['*'];
 		var url = configService.getApiEndpointURL();
 		return {
 			uploadFile: function (file) {
-
 				var uploadFormData = new FormData();
 				uploadFormData.append('file', file);
 				$http.defaults.headers.common.Authorization = 'Basic ZGVtb0B2aXJ0dWFsc2tlbGV0b24uY2g6ZGVtbw==';
@@ -419,11 +308,6 @@ angular.module('data-transfer')
 						finished.state = 'Failed';
 						$(window).trigger(finished); // Trigger the finished event
 					});
-			},
-			pause: function () { },
-			stop: function () { },
-			resume: function (file) {
-				this.uploadFile(file);
 			}
 		};
 	}]);
@@ -431,10 +315,11 @@ angular.module('data-transfer')
 angular.module('data-transfer')
 
 	.controller('dropController', ['$scope', 'browserDetectionService', 'transfersService', function ($scope, browserDetectionService, transfersService) {
-		var isChrome = browserDetectionService.isChrome(); // Check if user uses Chromr or another compatible browser
+		var chrome = browserDetectionService.isChrome();
+		var files = [];
 		// Display the message in the drop zone
-		if (isChrome) { 
-			document.getElementById("dropMessage").innerHTML = "Drag n'drop your files or folders here"; 
+		if (chrome) {
+			document.getElementById("dropMessage").innerHTML = "Drag n'drop your files or folders here";
 		}
 		else {
 			document.getElementById("dropMessage").innerHTML = "Drag n'drop your files here";
@@ -447,26 +332,38 @@ angular.module('data-transfer')
 			ev.preventDefault(); // Prevent dropped file to be openned in the browser
 		};
 
+		function pushFile(file) {
+			var alreadyDropped = false;
+			for (var i = 0; i < transfersService.getFiles().length; i++) {
+				if (transfersService.getFiles()[i].name === file.name) {
+					alreadyDropped = true;
+					alert('File alreadyDropped: ' + file.name);
+					i = transfersService.getFiles().length;
+				}
+			}
+			if (!alreadyDropped) {
+				transfersService.pushFile(file);
+			}
+		}
+
 		// onDrop event of the dropZone
 		dropZone.ondrop = function (ev) {
 			ev.preventDefault(); // Prevent dropped file to be openned in the browser
-			var droppedFiles = isChrome ? ev.dataTransfer.items : ev.dataTransfer.files; // Dropped files array affected depending on the browser
-			if (isChrome) {
-				for (var entryCnt = 0; entryCnt < droppedFiles.length; entryCnt++) {
-					var droppedFile = droppedFiles[entryCnt];
-					var entry = droppedFile.webkitGetAsEntry(); // Get dropped item as an entry (which can be either a file or a directory)
-					if (entry.isFile) { // If it's a file
-						$scope.readFile(entry); // Read it as text
+			var droppedFiles = chrome ? ev.dataTransfer.items : ev.dataTransfer.files; // Dropped files array affected depending on the browser
+			for (var i = 0; i < droppedFiles.length; i++) {
+				if (chrome) {
+					var entry = droppedFiles[i].webkitGetAsEntry();
+					if (entry.isDirectory) {
+						$scope.scanDirectory(entry);
 					}
-					else if (entry.isDirectory) { // If it's a directory
-						$scope.scanDirectory(entry); // Scan it
+					else if (entry.isFile) {
+						files.push(entry);
+						entry.file(pushFile);
 					}
 				}
-			}
-			else {
-				// If user doesn't use Chrome, just read all files as text
-				for (var filesCnt = 0; filesCnt < droppedFiles.length; filesCnt++) {
-					$scope.readFile(droppedFiles[filesCnt]);
+				else {
+					files.push(droppedFiles[i]);
+					transfersService.pushFile(droppedFiles[i]);
 				}
 			}
 		};
@@ -481,157 +378,70 @@ angular.module('data-transfer')
 						$scope.scanDirectory(entry); // Scan it (recursion)
 					}
 					else if (entry.isFile) { // If it's a file
-						$scope.readFile(entry); // Read it as text
+						files.push(entry); // Read it as text
+						entry.file(pushFile);
 					}
 				});
 			});
-		};
-
-		$scope.readFile = function (file) {
-			if (isChrome) {
-				// Read entry as file
-				var entry = file;
-				entry.file(function (file) {
-					var reader = new FileReader(); // Reader needed to read file content
-					reader.readAsText(file); // Read the file as text
-					// Event that occurs when the reader has finished reading the file
-					reader.onload = function (e) {
-						var size = file.size; // Size of the file
-						var divCount = 0; // Counter that counts the number of times the size is divided. It helps to know if the size is in Bytes, KiloBytes or MegaBytes
-						while (size > 1024) { // While the size is greater than 1024 (1KB), it can be divided to have a notation with MB or KB
-							size = Number((size / 1024).toFixed(3)); // Division
-							divCount++; // Increment the division counter
-						}
-						// Create a new transfer object
-						var newTrans = {
-							name: entry.fullPath, // Name is the full path
-							content: e.target.result, // Content is the result of the reader (read as text)
-							size: file.size, // Size of the file in Bytes
-							displaySize: size + (divCount == 2 ? " MB" : divCount == 1 ? " KB" : " B"), // Size displayed with a unit (B, KB, MB)
-							transferType: "Upload", // Transfer type (can be Upload or Download)
-							status: "Queued", // Status (Queued at the beginning, changes during upload and at the end of upload)
-							hash: CryptoJS.MD5(entry.name + e.target.result) // Hash of the file (used to compare files together)
-						};
-						var fileAlreadyDropped = false; // Indicates if a file has already been dropped
-						for (var i = 0; i < transfersService.getTransfers().length; i++) { // Going through all files (already dropped)
-							fileAlreadyDropped = transfersService.getTransfers()[i].hash.toString() == newTrans.hash.toString();
-							if (fileAlreadyDropped) {
-								alert('The following file has already been dropped: "' + file.name + '"'); // Pop-up a message which tells the user he's trying to upload a file that has already been dropped
-								i = transfersService.getTransfers().length;
-							}
-						}
-						if (!fileAlreadyDropped) { // If the file isn't already dropped
-							transfersService.pushTransfer(newTrans, file); // Pushing into array
-							$scope.$apply(function () { // Applying changes
-								$("#fileTransfersView").scope().changePage(0); // Change displayed transfers (by changing page)
-								$("#fileTransfersView").scope().definePagination(); // Define and display the pagination
-							});
-						}
-					};
-				});
-			}
-			else {
-				var reader = new FileReader(); // Reader needed to read file content
-				reader.readAsText(file); // Read the file as text
-				// Event that occurs when the reader has finished reading the file
-				reader.onload = function (e) {
-					var size = file.size; // Size of the file
-					var divCount = 0; // Counter that counts the number of times the size is divided. It helps to know if the size is in Bytes, KiloBytes or MegaBytes
-					while (size > 1024) { // While the size is greater than 1024 (1KB), it can be divided to have a notation with MB or KB
-						size = Number((size / 1024).toFixed(3)); // Division
-						divCount++; // Increment the division counter
-					}
-					// Create a new transfer object
-					var newTrans = {
-						name: file.name, // Name of the file
-						content: e.target.result, // Content is the result of the reader (read as text)
-						size: file.size, // Size of the file in Bytes
-						displaySize: size + (divCount == 2 ? " MB" : divCount == 1 ? " KB" : " B"), // Size displayed with a unit (B, KB, MB)
-						transferType: "Upload", // Transfer type (can be Upload or Download)
-						status: "Queued", // Status (Queued at the beginning, changes during upload and at the end of upload)
-						hash: CryptoJS.MD5(file.name + e.target.result) // Hash of the file (used to compare files together)
-					};
-					var fileAlreadyDropped = false; // Indicates if a file has already been dropped
-					for (var i = 0; i < transfersService.getTransfers().length; i++) { // Going through all files (already dropped)
-						fileAlreadyDropped = transfersService.getTransfers()[i].hash.toString() == newTrans.hash.toString();
-						if (fileAlreadyDropped) {
-							alert('The following file has already been dropped: "' + file.name + '"'); // Pop-up a message which tells the user he's trying to upload a file that has already been dropped
-							i = transfersService.getTransfers().length;
-						}
-					}
-					if (!fileAlreadyDropped) { // If the file isn't already dropped
-						transfersService.pushTransfer(newTrans, file); // Pushing into array
-						$scope.$apply(function () { // Applying changes
-							$("#fileTransfersView").scope().changePage(0); // Change displayed transfers (by changing page)
-							$("#fileTransfersView").scope().definePagination(); // Define and display the pagination
-						});
-					}
-				};
-			}
 		};
 	}]);
 ;
 angular.module('data-transfer')
 
 	.controller('viewController', ['$scope', 'configService', 'transfersService', function ($scope, configService, transfersService) {
-		$scope.displayedTransfers = []; // Transfers that are displayed in the view (size milited in the settings and content changes each times user changes page in the view)
-		$scope.page = ''; // Name of the page (in the application)
-		$scope.pageCount = 0; // Number of pages in the view 
-		$scope.currentPage = 1; // Current page in the view
 
-		$(window).on('loaded', function () {
-			var transfers = transfersService.getTransfers(); // All transfers (from transfersService)
+		var files = [];
+		var filesVM = [];
+		var runningTransfers = [];
+		$scope.displayedTransfers = [];
+		var currentPage = 1;
+
+		$(window).on('filePushed', function (e) {
+			files.push(e.file);
+			runningTransfers = transfersService.getRunningTransfers();
+			var sta = 'Queued';
+			for (var i = 0; i < runningTransfers.length; i++) {
+				if (runningTransfers[i].name == e.file.name) {
+					sta = 'Pending';
+					i = runningTransfers.length;
+				}
+			}
+			var newFileVM = {
+				name: e.file.name,
+				size: e.file.size,
+				displaySize: function () {
+					var cptDiv = 0;
+					var size = this.size;
+					while (size > 1024) {
+						size /= 1024;
+						cptDiv++;
+					}
+					return (Number((size).toFixed(0))) + (cptDiv == 2 ? ' MB' : cptDiv == 1 ? ' KB' : ' B');
+				},
+				status: sta,
+				transferType: 'Upload'
+			};
+			filesVM.push(newFileVM);
+			$scope.displayedTransfers.push(newFileVM);
 			$scope.definePagination();
-			$scope.changePage(1);
+			$scope.changePage(currentPage);
 			$scope.$apply();
 		});
 
-		// Progress event sent by the service (mock or upload)
-		$(window).on('progress', function (e) {
-			// Search the corresponding transfer in transfers array
-			for (var i = 0; i < transfers.length; i++) {
-				var currentTransfer = transfers[i];
-				if (currentTransfer === e.file) { // If corresponding
-					currentTransfer.status = e.state; // Set transfer status
-					currentTransfer.prog = e.prog; // Set transfer progress (to display the progressBar)
-					currentTransfer.time = e.time;
-					currentTransfer.elapsedTime = e.elapsedTime; // Set elapsed time
-					currentTransfer.remainingTime = e.remainingTime; // Set remaining time
-					$scope.$apply(); // Apply changes to the scope. This is used to refresh the view
-					i = transfers.length; // Out of the loop
-				}
-			}
+		$(window).on('run', function (e) {
+			var index = files.indexOf(e.file);
+			filesVM[index].status = e.state;
 		});
 
-		// Complete event sent by the service (mock or upload)
 		$(window).on('complete', function (e) {
-			// Search the corresponding transfer in transfers array
-			for (var i = 0; i < transfers.length; i++) {
-				var currentTransfer = transfers[i];
-				if (currentTransfer === e.file) { // If corresponding
-					currentTransfer.status = e.state; // Set transfer status
-					if (e.state === 'Failed') { // If the upload has failed
-						currentTransfer.prog = 0; // Set progress to 0%
-					}
-					$scope.$apply(); // Apply changes to the scope. This is used to refresh the view
-					i = transfers.length; // Out of the loop
-				}
-			}
+			var index = files.indexOf(e.file); // Get the index of the file in the transfers array
+			filesVM[index].status = e.state;
 		});
 
-		// Function that starts the upload (Sent by clicking on the start button)
 		$scope.start = function (trans) {
-			transfersService.start(trans);
-		};
-
-		// Function that suspends the upload (Sent by clicking on the pause button)
-		$scope.pause = function (trans) {
-			transfersService.pause(trans);
-		};
-
-		// Function that stops the upload (Sent by clicking on the stop button)
-		$scope.stop = function (trans) {
-			transfersService.stop(trans);
+			var index = filesVM.indexOf(trans);
+			transfersService.start(files[index]);
+			filesVM[index].status = 'Pending';
 		};
 
 		// Function that changes the page of the table (by changing displayed transfers)
@@ -641,7 +451,7 @@ angular.module('data-transfer')
 				currentPage = num; // Change currentPage
 			$scope.displayedTransfers = []; // Flushing displayed transfers array
 			var displayedQty = configService.getDisplayedTransfersQty();
-			transfers = transfersService.getTransfers();
+			transfers = filesVM;
 			// Loop that adds the correct number of transfers into the displayedTransfers array
 			for (var i = 0, trans = (currentPage - 1) * 5; i < displayedQty; i++ , trans++) {
 				if (transfers[trans] !== undefined) { // If the current transfer exist
@@ -659,7 +469,7 @@ angular.module('data-transfer')
 
 		$scope.definePagination = function () {
 			var displayedQty = configService.getDisplayedTransfersQty();
-			$scope.pageCount = (transfersService.getTransfers().length / displayedQty) + 1; // Calculate number of pages from number of transfers to display
+			$scope.pageCount = (filesVM.length / displayedQty) + 1; // Calculate number of pages from number of transfers to display
 			// init bootpag
 			$('#page-selection').bootpag({
 				total: $scope.pageCount,
@@ -685,8 +495,6 @@ angular.module('data-transfer')
 
 		var fileTransfersView = $("#fileTransfersView"); // Get the view with jQuery
 		var imgChevronCollapse = $("#imgChevronCollapse"); // Get icon with jQuery
-		$scope.definePagination();
-		$scope.changePage(1);
 
 		// Detects when the user click on the chevron icon of the transfers view
 		imgChevronCollapse.on('click', function () {

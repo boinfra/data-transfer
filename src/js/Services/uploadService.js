@@ -1,11 +1,10 @@
 angular.module('data-transfer')
 
-	.factory('uploadService', ['$resource', '$http', 'configService', function ($resource, $http, configService) {
+	.factory('uploadService', ['$http', 'configService', function ($http, configService) {
 		var acceptedExtensions = ['*'];
 		var url = configService.getApiEndpointURL();
 		return {
 			uploadFile: function (file) {
-
 				var uploadFormData = new FormData();
 				uploadFormData.append('file', file);
 				$http.defaults.headers.common.Authorization = 'Basic ZGVtb0B2aXJ0dWFsc2tlbGV0b24uY2g6ZGVtbw==';
@@ -26,11 +25,6 @@ angular.module('data-transfer')
 						finished.state = 'Failed';
 						$(window).trigger(finished); // Trigger the finished event
 					});
-			},
-			pause: function () { },
-			stop: function () { },
-			resume: function (file) {
-				this.uploadFile(file);
 			}
 		};
 	}]);

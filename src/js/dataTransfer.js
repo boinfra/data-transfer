@@ -1,1 +1,1 @@
-angular.module('data-transfer', ['ngResource', 'ui.bootstrap']); // Creation of the main module of the framework
+angular.module('data-transfer', ['ui.bootstrap']); // Creation of the main module of the framework
