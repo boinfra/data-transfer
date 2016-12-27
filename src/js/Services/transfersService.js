@@ -62,6 +62,13 @@ angular.module('data-transfer')
 			getFiles: function () {
 				return files;
 			},
+			removeFile: function (file) {
+				var index = files.indexOf(file);
+				files.splice(index, 1);
+				var remove = $.Event('remove');
+				remove.file = file;
+				$(window).trigger(remove);
+			},
 			start: function (file) {
 				if (runningTransfers.length < concurentTransfers) {
 					runningTransfers.push(file);

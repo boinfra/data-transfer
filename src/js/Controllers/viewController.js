@@ -6,7 +6,9 @@ angular.module('data-transfer')
 		var filesVM = [];
 		var runningTransfers = [];
 		$scope.displayedTransfers = [];
+		$scope.selectedTransfers = [];
 		var currentPage = 1;
+		$scope.allSelected = false;
 
 		$(window).on('filePushed', function (e) {
 			files.push(e.file);
@@ -40,6 +42,14 @@ angular.module('data-transfer')
 			$scope.$apply();
 		});
 
+		$(window).on('remove', function(e){
+			var index = files.indexOf(e.file);
+			files.splice(index, 1);
+			filesVM.splice(index, 1);
+			$scope.definePagination();
+			$scope.changePage(currentPage);
+		});
+
 		$(window).on('run', function (e) {
 			var index = files.indexOf(e.file);
 			filesVM[index].status = e.state;
@@ -49,6 +59,43 @@ angular.module('data-transfer')
 			var index = files.indexOf(e.file); // Get the index of the file in the transfers array
 			filesVM[index].status = e.state;
 		});
+
+		$scope.delete = function() {
+			for(var i = 0; i < $scope.displayedTransfers.length; i++) {
+				if($scope.displayedTransfers[i].selected) {		
+					transfersService.removeFile(files[i]);
+					$scope.selectedTransfers.splice(i, 1);
+				}
+			}
+		};
+
+		$scope.toggleAll = function () {
+			if ($scope.selectedTransfers.length === 0) { // No transfer is selected
+				for (var i = 0; i < transfersService.getFiles().length; i++) {
+					$scope.selectedTransfers.push($scope.displayedTransfers[i]);
+					$scope.displayedTransfers[i].selected = true;
+					$scope.allSelected = true;
+				}
+			}
+			else {
+				$scope.selectedTransfers = [];
+				for (var j = 0; j < $scope.displayedTransfers.length; j++) {
+					$scope.displayedTransfers[j].selected = false;
+					$scope.allSelected = false;
+				}
+			}
+		};
+
+		$scope.toggleSelected = function (trans) {
+			var index = $scope.selectedTransfers.indexOf(trans);
+			if (index === -1) { // If the transfer is not selected
+				$scope.selectedTransfers.push(trans);
+			}
+			else {
+				$scope.selectedTransfers.splice(index, 1);
+			}
+			$scope.allSelected = $scope.selectedTransfers.length > 0;
+		};
 
 		$scope.start = function (trans) {
 			var index = filesVM.indexOf(trans);

@@ -14,13 +14,13 @@
 			</span>
 		</p>
 	</div>
+	<button class="btn btn-danger" ng-show="selectedTransfers.length > 0" ng-click="delete()">Delete selected</button>
 	<div id="fileTransfersViewBody" class="fileTransfersViewBody">
 		<div class="collapse in" id="fileTransfersTable">
-			<!--<button class="btn btn-danger" ng-show="selectedTransfers.length > 0">Delete selected</button>-->
 			<table class="table table-condensed borderless">
 				<thead>
 					<tr>
-						<th><input type="checkbox" ng-model="allSelected" ng-change="toggleAll"/></th>
+						<th><input type="checkbox" ng-model="allSelected" ng-change="toggleAll()"/></th>
 						<th>Name</th>
 						<th>Size</th>
 						<th>Transfer type</th>
@@ -32,9 +32,10 @@
 					</tr>
 				</thead>
 				<tbody id="tableBody" class="tableBody">
-					<tr ng-repeat="transfer in displayedTransfers" on-finish-render="ngRepeatFinished" ng-show="transfer.transferType=='Upload' || page!='upload'"
+					<tr ng-repeat="transfer in displayedTransfers" on-finish-render="ngRepeatFinished" 
+						ng-show="transfer.transferType=='Upload' || page!='upload'"
 						ng-class="{'Failed': 'danger', 'Succeeded': 'success'} [transfer.status]">
-						<td><input type="checkbox" ng-model="transfer.selected" ng-selected="selectedTransfers.push(transfer)"/></td>
+						<td><input type="checkbox" ng-model="transfer.selected" ng-change="toggleSelected(transfer)"/></td>
 						<td>{{transfer.name}}</td>
 						<td>{{transfer.displaySize()}}</td>
 						<td>
