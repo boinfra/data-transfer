@@ -108,7 +108,6 @@ angular.module('data-transfer')
 		$scope.start = function (trans) {
 			var index = filesVM.indexOf(trans);
 			transfersService.start(files[index]);
-			filesVM[index].status = 'Pending';
 		};
 
 		// Function that changes the page of the table (by changing displayed transfers)
