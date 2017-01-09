@@ -1,7 +1,6 @@
 angular.module('data-transfer')
 
-	.factory('uploadService', ['$http', 'configService', function ($http, configService) {
-		var acceptedExtensions = ['*'];
+	.factory('uploadService', ['$http', '$resource', 'configService', function ($http, $resource, configService) {
 		var url = configService.getApiEndpointURL();
 		return {
 			uploadFile: function (file) {

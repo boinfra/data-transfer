@@ -1,4 +1,4 @@
-angular.module('data-transfer', ['ui.bootstrap']); // Creation of the main module of the framework
+angular.module('data-transfer', ['ui.bootstrap', 'ngResource']); // Creation of the main module of the framework
 ;
 angular.module('data-transfer')
 
@@ -74,6 +74,7 @@ angular.module('data-transfer')
 			// Function that uploads a file
 			uploadFile: function (file) {
 				transfers.push(file); // Add the file to the transfers array
+				transfers[transfers.length -1].status = 'Queued';
 				var prog = file.prog; // Progress 
 				var time;
 				if (file.time !== undefined) {
@@ -95,8 +96,8 @@ angular.module('data-transfer')
 				var interval = setInterval(function () {
 					var index = transfers.lastIndexOf(file); // Get the index of the file in transfers array
 					if (index !== -1) { // If file exists in array
-						if (file.status === 'Failed') { // If the up has failed (retry)
-							file.status = 'Pending'; // Status is now pending
+						if (transfers[index].status === 'Failed' || transfers[index].status === 'Queued') { // If the up has failed (retry)
+							transfers[index].status = 'Pending'; // Status is now pending
 						}
 						if (transfers[index].status === 'Queued') { // If the upload has not been started yet
 							time = 0; // Set time to 0
@@ -116,14 +117,16 @@ angular.module('data-transfer')
 							$(window).trigger(progress); // Trigger the progress event
 						}
 						// If upload is complete
-						else if (!finishedSent) { // And finished event hadn't been sent 
-							finished.state = status; // Set state of the finished event
-							finished.file = file; // Set the file that is concerned by this event
-							index = transfers.indexOf(file); // Index of the file in the transfers array
-							transfers.splice(index, 1); // Remove file from transfers array
-							finishedSent = true; // Finished event has been sent
-							clearInterval(interval); // Clear this interval
-							$(window).trigger(finished); // Trigger the finished event
+						else {
+							if (!finishedSent) { // And finished event hadn't been sent 
+								finished.state = status; // Set state of the finished event
+								finished.file = file; // Set the file that is concerned by this event
+								index = transfers.indexOf(file); // Index of the file in the transfers array
+								transfers.splice(index, 1); // Remove file from transfers array
+								finishedSent = true; // Finished event has been sent
+								clearInterval(interval); // Clear this interval
+								$(window).trigger(finished); // Trigger the finished event
+							}
 						}
 					}
 				}, 100);
@@ -209,7 +212,7 @@ angular.module('data-transfer')
 		var files = [];
 		var autoRetries = [];
 		var filePushed = $.Event('filePushed');
-		var service = serviceFactory.getService('upload');
+		var service = serviceFactory.getService('mock');
 		var runningTransfers = [];
 		var concurentTransfers = configService.getConcurentTransfersQty(); // Get the number of transfers that can run at the same time
 		var transfersCompleted = 0; // Number of completed transfers
@@ -255,7 +258,6 @@ angular.module('data-transfer')
 			pushFile: function (file) {
 				files.push(file);
 				autoRetries.push(0);
-				var service = serviceFactory.getService('upload');
 				filePushed.status = configService.getAutoStart() ? 'Pending' : 'Queued';
 				filePushed.file = file;
 				$(window).trigger(filePushed);
@@ -290,8 +292,7 @@ angular.module('data-transfer')
 ;
 angular.module('data-transfer')
 
-	.factory('uploadService', ['$http', 'configService', function ($http, configService) {
-		var acceptedExtensions = ['*'];
+	.factory('uploadService', ['$http', '$resource', 'configService', function ($http, $resource, configService) {
 		var url = configService.getApiEndpointURL();
 		return {
 			uploadFile: function (file) {
@@ -437,7 +438,7 @@ angular.module('data-transfer')
 			$scope.$apply();
 		});
 
-		$(window).on('remove', function(e){
+		$(window).on('remove', function (e) {
 			var index = files.indexOf(e.file);
 			files.splice(index, 1);
 			filesVM.splice(index, 1);
@@ -450,14 +451,22 @@ angular.module('data-transfer')
 			filesVM[index].status = e.state;
 		});
 
+		$(window).on('progress', function (e) {
+			var index = files.indexOf(e.file); // Get the index of the file in the transfers array
+			filesVM[index].elapsedTime = e.elapsedTime;
+			filesVM[index].remainingTime = e.remainingTime;
+			$scope.$apply();
+		});
+
 		$(window).on('complete', function (e) {
 			var index = files.indexOf(e.file); // Get the index of the file in the transfers array
 			filesVM[index].status = e.state;
+			$scope.$apply();
 		});
 
-		$scope.delete = function() {
-			for(var i = 0; i < $scope.displayedTransfers.length; i++) {
-				if($scope.displayedTransfers[i].selected) {		
+		$scope.delete = function () {
+			for (var i = 0; i < $scope.displayedTransfers.length; i++) {
+				if ($scope.displayedTransfers[i].selected) {
 					transfersService.removeFile(files[i]);
 					$scope.selectedTransfers.splice(i, 1);
 				}

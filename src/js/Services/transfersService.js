@@ -5,7 +5,7 @@ angular.module('data-transfer')
 		var files = [];
 		var autoRetries = [];
 		var filePushed = $.Event('filePushed');
-		var service = serviceFactory.getService('upload');
+		var service = serviceFactory.getService('mock');
 		var runningTransfers = [];
 		var concurentTransfers = configService.getConcurentTransfersQty(); // Get the number of transfers that can run at the same time
 		var transfersCompleted = 0; // Number of completed transfers
@@ -51,7 +51,6 @@ angular.module('data-transfer')
 			pushFile: function (file) {
 				files.push(file);
 				autoRetries.push(0);
-				var service = serviceFactory.getService('upload');
 				filePushed.status = configService.getAutoStart() ? 'Pending' : 'Queued';
 				filePushed.file = file;
 				$(window).trigger(filePushed);

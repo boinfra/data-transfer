@@ -42,7 +42,7 @@ angular.module('data-transfer')
 			$scope.$apply();
 		});
 
-		$(window).on('remove', function(e){
+		$(window).on('remove', function (e) {
 			var index = files.indexOf(e.file);
 			files.splice(index, 1);
 			filesVM.splice(index, 1);
@@ -55,14 +55,22 @@ angular.module('data-transfer')
 			filesVM[index].status = e.state;
 		});
 
+		$(window).on('progress', function (e) {
+			var index = files.indexOf(e.file); // Get the index of the file in the transfers array
+			filesVM[index].elapsedTime = e.elapsedTime;
+			filesVM[index].remainingTime = e.remainingTime;
+			$scope.$apply();
+		});
+
 		$(window).on('complete', function (e) {
 			var index = files.indexOf(e.file); // Get the index of the file in the transfers array
 			filesVM[index].status = e.state;
+			$scope.$apply();
 		});
 
-		$scope.delete = function() {
-			for(var i = 0; i < $scope.displayedTransfers.length; i++) {
-				if($scope.displayedTransfers[i].selected) {		
+		$scope.delete = function () {
+			for (var i = 0; i < $scope.displayedTransfers.length; i++) {
+				if ($scope.displayedTransfers[i].selected) {
 					transfersService.removeFile(files[i]);
 					$scope.selectedTransfers.splice(i, 1);
 				}

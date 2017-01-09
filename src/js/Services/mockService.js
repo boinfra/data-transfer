@@ -6,6 +6,7 @@ angular.module('data-transfer')
 			// Function that uploads a file
 			uploadFile: function (file) {
 				transfers.push(file); // Add the file to the transfers array
+				transfers[transfers.length -1].status = 'Queued';
 				var prog = file.prog; // Progress 
 				var time;
 				if (file.time !== undefined) {
@@ -27,8 +28,8 @@ angular.module('data-transfer')
 				var interval = setInterval(function () {
 					var index = transfers.lastIndexOf(file); // Get the index of the file in transfers array
 					if (index !== -1) { // If file exists in array
-						if (file.status === 'Failed') { // If the up has failed (retry)
-							file.status = 'Pending'; // Status is now pending
+						if (transfers[index].status === 'Failed' || transfers[index].status === 'Queued') { // If the up has failed (retry)
+							transfers[index].status = 'Pending'; // Status is now pending
 						}
 						if (transfers[index].status === 'Queued') { // If the upload has not been started yet
 							time = 0; // Set time to 0
@@ -48,14 +49,16 @@ angular.module('data-transfer')
 							$(window).trigger(progress); // Trigger the progress event
 						}
 						// If upload is complete
-						else if (!finishedSent) { // And finished event hadn't been sent 
-							finished.state = status; // Set state of the finished event
-							finished.file = file; // Set the file that is concerned by this event
-							index = transfers.indexOf(file); // Index of the file in the transfers array
-							transfers.splice(index, 1); // Remove file from transfers array
-							finishedSent = true; // Finished event has been sent
-							clearInterval(interval); // Clear this interval
-							$(window).trigger(finished); // Trigger the finished event
+						else {
+							if (!finishedSent) { // And finished event hadn't been sent 
+								finished.state = status; // Set state of the finished event
+								finished.file = file; // Set the file that is concerned by this event
+								index = transfers.indexOf(file); // Index of the file in the transfers array
+								transfers.splice(index, 1); // Remove file from transfers array
+								finishedSent = true; // Finished event has been sent
+								clearInterval(interval); // Clear this interval
+								$(window).trigger(finished); // Trigger the finished event
+							}
 						}
 					}
 				}, 100);
