@@ -53,6 +53,7 @@ angular.module('data-transfer')
 							if (!finishedSent) { // And finished event hadn't been sent 
 								finished.state = status; // Set state of the finished event
 								finished.file = file; // Set the file that is concerned by this event
+								finished.service = 'mock';
 								index = transfers.indexOf(file); // Index of the file in the transfers array
 								transfers.splice(index, 1); // Remove file from transfers array
 								finishedSent = true; // Finished event has been sent

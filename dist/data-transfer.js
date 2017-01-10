@@ -121,6 +121,7 @@ angular.module('data-transfer')
 							if (!finishedSent) { // And finished event hadn't been sent 
 								finished.state = status; // Set state of the finished event
 								finished.file = file; // Set the file that is concerned by this event
+								finished.service = 'mock';
 								index = transfers.indexOf(file); // Index of the file in the transfers array
 								transfers.splice(index, 1); // Remove file from transfers array
 								finishedSent = true; // Finished event has been sent
@@ -212,7 +213,7 @@ angular.module('data-transfer')
 		var files = [];
 		var autoRetries = [];
 		var filePushed = $.Event('filePushed');
-		var service = serviceFactory.getService('mock');
+		var service = serviceFactory.getService('upload');
 		var runningTransfers = [];
 		var concurentTransfers = configService.getConcurentTransfersQty(); // Get the number of transfers that can run at the same time
 		var transfersCompleted = 0; // Number of completed transfers
@@ -224,7 +225,6 @@ angular.module('data-transfer')
 		$(window).on('complete', function (e) {
 			var index = transfers.indexOf(e.file); // Get the index of the file in the transfers array
 			runningTransfers.splice(index, 1); // Remove succeeded transfer from running transfers array
-			console.debug(runningTransfers.length);
 			var offset = concurentTransfers - 1; // Offset for the index to get the next transfer
 			if (e.state == 'Succeeded') { // If upload has succeeded
 				transfersCompleted++; // Incerment the counter of completed transfers
@@ -282,7 +282,6 @@ angular.module('data-transfer')
 					service.uploadFile(file);
 					run.file = file;
 					$(window).trigger(run);
-					console.debug(runningTransfers.length);
 				}
 			},
 			getRunningTransfers: function () {
@@ -300,7 +299,6 @@ angular.module('data-transfer')
 			uploadFile: function (file) {
 				var uploadFormData = new FormData();
 				uploadFormData.append('file', file);
-				$http.defaults.headers.common.Authorization = 'Basic ZGVtb0B2aXJ0dWFsc2tlbGV0b24uY2g6ZGVtbw==';
 
 				$http.post(url, uploadFormData, {
 					transformRequest: angular.identity,
@@ -463,7 +461,9 @@ angular.module('data-transfer')
 		$(window).on('complete', function (e) {
 			var index = files.indexOf(e.file); // Get the index of the file in the transfers array
 			filesVM[index].status = e.state;
-			$scope.$apply();
+			if (e.service === 'mock') {
+				$scope.$apply();
+			}
 		});
 
 		$scope.delete = function () {

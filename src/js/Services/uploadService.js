@@ -6,7 +6,6 @@ angular.module('data-transfer')
 			uploadFile: function (file) {
 				var uploadFormData = new FormData();
 				uploadFormData.append('file', file);
-				$http.defaults.headers.common.Authorization = 'Basic ZGVtb0B2aXJ0dWFsc2tlbGV0b24uY2g6ZGVtbw==';
 
 				$http.post(url, uploadFormData, {
 					transformRequest: angular.identity,
