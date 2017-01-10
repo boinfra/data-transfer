@@ -5,7 +5,7 @@ angular.module('data-transfer')
 		var files = [];
 		var autoRetries = [];
 		var filePushed = $.Event('filePushed');
-		var service = serviceFactory.getService('mock');
+		var service = serviceFactory.getService('upload');
 		var runningTransfers = [];
 		var concurentTransfers = configService.getConcurentTransfersQty(); // Get the number of transfers that can run at the same time
 		var transfersCompleted = 0; // Number of completed transfers
@@ -17,7 +17,6 @@ angular.module('data-transfer')
 		$(window).on('complete', function (e) {
 			var index = transfers.indexOf(e.file); // Get the index of the file in the transfers array
 			runningTransfers.splice(index, 1); // Remove succeeded transfer from running transfers array
-			console.debug(runningTransfers.length);
 			var offset = concurentTransfers - 1; // Offset for the index to get the next transfer
 			if (e.state == 'Succeeded') { // If upload has succeeded
 				transfersCompleted++; // Incerment the counter of completed transfers
@@ -75,7 +74,6 @@ angular.module('data-transfer')
 					service.uploadFile(file);
 					run.file = file;
 					$(window).trigger(run);
-					console.debug(runningTransfers.length);
 				}
 			},
 			getRunningTransfers: function () {

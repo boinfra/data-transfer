@@ -65,7 +65,9 @@ angular.module('data-transfer')
 		$(window).on('complete', function (e) {
 			var index = files.indexOf(e.file); // Get the index of the file in the transfers array
 			filesVM[index].status = e.state;
-			$scope.$apply();
+			if (e.service === 'mock') {
+				$scope.$apply();
+			}
 		});
 
 		$scope.delete = function () {
