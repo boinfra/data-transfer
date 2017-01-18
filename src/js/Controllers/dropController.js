@@ -2,6 +2,8 @@ angular.module('data-transfer')
 
 	.controller('dropController', ['$scope', 'browserDetectionService', 'transfersService', function ($scope, browserDetectionService, transfersService) {
 		var chrome = browserDetectionService.isChrome();
+		console.debug('Browser has webkit: ' + browserDetectionService.getBrowserInfo().hasWebkit + ' version: ' + browserDetectionService.getBrowserInfo().webkitVersion);
+		console.debug('Browser is ' + browserDetectionService.getBrowserInfo().name + ' version: ' + browserDetectionService.getBrowserInfo().version);
 		var files = [];
 		// Display the message in the drop zone
 		if (chrome) {

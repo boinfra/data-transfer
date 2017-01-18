@@ -5,25 +5,18 @@ angular.module('data-transfer')
 	.factory('browserDetectionService', function () {
 		return {
 			isChrome: function () {
-				var chrome,
-					// Code copied from internet (http://stackoverflow.com/questions/4565112/javascript-how-to-find-out-if-the-user-browser-is-chrome)	
-					isChromium = window.chrome,
-					winNav = window.navigator,
-					vendorName = winNav.vendor,
-					isOpera = winNav.userAgent.indexOf("OPR") > -1,
-					isIEedge = winNav.userAgent.indexOf("Edge") > -1,
-					isIOSChrome = winNav.userAgent.match("CriOS"),
-					message = document.getElementById("dropMessage");
+				return true;
+			},
+			getBrowserInfo: function () {
+				var browserInfo = {};
+				var webkit = detectWebKit();
+				console.debug(webkit);
+				browserInfo.hasWebkit = webkit.iswebkit;
+				browserInfo.webkitVersion = parseFloat(webkit.version);
+				browserInfo.name = webkit.browser.substr(0, webkit.browser.search(/\d/));
+				browserInfo.version = webkit.browser.substr(webkit.browser.search(/\d/));
 
-				if (isIOSChrome) {
-					chrome = true;
-				} else if (isChromium !== null && isChromium !== undefined && vendorName === "Google Inc." && isIEedge === false) {
-					chrome = true;
-				} else {
-					chrome = false;
-				}
-
-				return chrome;
+				return browserInfo;
 			}
 		};
 	});
@@ -324,6 +317,8 @@ angular.module('data-transfer')
 
 	.controller('dropController', ['$scope', 'browserDetectionService', 'transfersService', function ($scope, browserDetectionService, transfersService) {
 		var chrome = browserDetectionService.isChrome();
+		console.debug('Browser has webkit: ' + browserDetectionService.getBrowserInfo().hasWebkit + ' version: ' + browserDetectionService.getBrowserInfo().webkitVersion);
+		console.debug('Browser is ' + browserDetectionService.getBrowserInfo().name + ' version: ' + browserDetectionService.getBrowserInfo().version);
 		var files = [];
 		// Display the message in the drop zone
 		if (chrome) {

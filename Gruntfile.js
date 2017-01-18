@@ -1,14 +1,25 @@
 module.exports = function (grunt) {
 
+	require('load-grunt-tasks')(grunt);
+
 	grunt.initConfig({
 		pkg: grunt.file.readJSON('package.json'),
+		src: {
+			js: ['src/js/**/*.js'],
+			html: ['src/html/**/*.html'],
+			css: ['src/css/**/*.css']
+		},
+		dist: {
+			js: ['dist/js'],
+			css: ['dist/css']
+		},
 		concat: {
 			options: {
 				separator: '\n;\n'
 			},
 			dist: {
 				src: ['src/js/*.js', 'src/js/Services/*.js', 'src/js/Controllers/*.js'],
-				dest: 'dist/<%= pkg.name %>.js'
+				dest: '<%= dist.js %>/<%= pkg.name %>.js'
 			}
 		},
 		uglify: {
@@ -17,7 +28,7 @@ module.exports = function (grunt) {
 			},
 			dist: {
 				files: {
-					'dist/<%= pkg.name %>.min.js': ['<%= concat.dist.dest %>']
+					'<%= dist.js %>/<%= pkg.name %>.min.js': ['<%= concat.dist.dest %>']
 				}
 			}
 		},
@@ -31,18 +42,22 @@ module.exports = function (grunt) {
 				}
 			}
 		},
+		cssmin: {
+			combine: {
+				files: {
+					'<%= dist.css %>/<%= pkg.name %>.css': ['<%= src.css %>']
+				}
+			}
+		},
 		watch: {
-			files: ['<%= jshint.files %>'],
-			tasks: ['dev']
+			js: {
+				files: ['src/js/**/*.js'],
+				tasks: ['jshint', 'concat']
+			},
+			css: {
+				files: ['src/css/**/*.css'],
+				tasks: ['cssmin']
+			}
 		}
 	});
-
-	grunt.loadNpmTasks('grunt-contrib-uglify');
-	grunt.loadNpmTasks('grunt-contrib-jshint');
-	grunt.loadNpmTasks('grunt-contrib-watch');
-	grunt.loadNpmTasks('grunt-contrib-concat');
-
-	grunt.registerTask('default', ['dev', 'watch']);
-	grunt.registerTask('dev', ['jshint', 'concat']);
-	grunt.registerTask('dist', ['jshint', 'concat', 'uglify']);
 };
