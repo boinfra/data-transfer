@@ -4,9 +4,10 @@ module.exports = function (grunt) {
 
 	grunt.initConfig({
 		pkg: grunt.file.readJSON('package.json'),
+		banner: '/*! <%= pkg.name %> <%= grunt.template.today("dd.mm.yyyy") %> */\n',
 		src: {
-			js: ['src/js/**/*.js'],
-			html: ['src/html/**/*.html'],
+			js: ['src/js/*.js', 'src/js/Services/*.js', 'src/js/Directives/*.js', 'src/js/Controllers/*.js'],
+			html: ['src/js/**/*.tpl.html'],
 			css: ['src/css/**/*.css']
 		},
 		dist: {
@@ -15,31 +16,46 @@ module.exports = function (grunt) {
 		},
 		concat: {
 			options: {
+				banner: '<%= banner %>',
 				separator: '\n;\n'
 			},
 			dist: {
-				src: ['src/js/*.js', 'src/js/Services/*.js', 'src/js/Controllers/*.js', 'src/js/Directives/*.js'],
+				src: '<%= src.js %>',
 				dest: '<%= dist.js %>/<%= pkg.name %>.js'
 			}
 		},
 		uglify: {
 			options: {
-				banner: '/*! <%= pkg.name %> <%= grunt.template.today("dd.mm.yyyy") %> */\n'
+				banner: '<%= banner %>'
 			},
 			dist: {
 				files: {
-					'<%= dist.js %>/<%= pkg.name %>.min.js': ['<%= concat.dist.dest %>']
+					'<%= dist.js %>/<%= pkg.name %>.min.js': ['<%= concat.dist.dest %>'],
+					'<%= dist.js %>/<%= pkg.name %>-templates.min.js': ['<%= html2js.dataTransfer.dest %>']
 				}
 			}
 		},
 		jshint: {
-			files: ['src/js/**/*.js'],
+			files: '<%= src.js %>',
 			options: {
 				globals: {
 					jQuery: true,
 					console: true,
 					module: true
 				}
+			}
+		},
+		copy: {
+			all: {
+				files: [
+					{ dest: 'dist/libraries', src: '**', expand: true, cwd: 'libraries/' }
+				]
+			}
+		},
+		html2js: {
+			dataTransfer: {
+				src: '<%= src.html %>',
+				dest: '<%= dist.js %>/<%= pkg.name %>-templates.js'
 			}
 		},
 		cssmin: {
@@ -50,12 +66,20 @@ module.exports = function (grunt) {
 			}
 		},
 		watch: {
+			libs: {
+				files: 'libraries/**',
+				tasks: ['copy']
+			},
+			html: {
+				files: '<%= src.html %>',
+				tasks: ['html2js']
+			},
 			js: {
-				files: ['src/js/**/*.js'],
+				files: '<%= src.js %>',
 				tasks: ['jshint', 'concat']
 			},
 			css: {
-				files: ['src/css/**/*.css'],
+				files: '<%= src.css %>',
 				tasks: ['cssmin']
 			}
 		}

@@ -1,4 +1,5 @@
-angular.module('data-transfer', ['ui.bootstrap', 'ngResource']); // Creation of the main module of the framework
+/*! data-transfer 19.01.2017 */
+angular.module('data-transfer', ['ui.bootstrap', 'ngResource', 'templates-dataTransfer']); // Creation of the main module of the framework
 ;
 angular.module('data-transfer')
 
@@ -375,6 +376,27 @@ angular.module('data-transfer')
 ;
 angular.module('data-transfer')
 
+	.directive('dtDropZone', function () {
+		return {
+			restrict: 'E',
+			templateUrl: '/dataTransfer/src/js/Directives/templates/dropZone.tpl.html'
+		};
+	});
+;
+angular.module('data-transfer')
+
+	.directive('dtTransfersView', function () {
+		return {
+			restrict: 'E',
+			scope: {
+				page: '='
+			},
+			templateUrl: '/dataTransfer/src/js/Directives/templates/transfersView.tpl.html'
+		};
+	});
+;
+angular.module('data-transfer')
+
 	.controller('dropController', ['$scope', 'browserDetectionService', 'transfersService', function ($scope, browserDetectionService, transfersService) {
 		var browserInfo = browserDetectionService.getBrowserInfo();
 		var webkit = browserInfo.hasWebkit;
@@ -657,26 +679,5 @@ angular.module('data-transfer')
 					});
 				}
 			}
-		};
-	});
-;
-angular.module('data-transfer')
-
-	.directive('dtDropZone', function () {
-		return {
-			restrict: 'E',
-			templateUrl: '/dataTransfer/src/js/Directives/templates/dropZone.html'
-		};
-	});
-;
-angular.module('data-transfer')
-
-	.directive('dtTransfersView', function () {
-		return {
-			restrict: 'E',
-			scope: {
-				page: '='
-			},
-			templateUrl: '/dataTransfer/src/js/Directives/templates/transfersView.html'
 		};
 	});
