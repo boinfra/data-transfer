@@ -1,12 +1,11 @@
 angular.module('data-transfer')
 
 	.controller('dropController', ['$scope', 'browserDetectionService', 'transfersService', function ($scope, browserDetectionService, transfersService) {
-		var chrome = browserDetectionService.isChrome();
-		console.debug('Browser has webkit: ' + browserDetectionService.getBrowserInfo().hasWebkit + ' version: ' + browserDetectionService.getBrowserInfo().webkitVersion);
-		console.debug('Browser is ' + browserDetectionService.getBrowserInfo().name + ' version: ' + browserDetectionService.getBrowserInfo().version);
+		var browserInfo = browserDetectionService.getBrowserInfo();
+		var webkit = browserInfo.hasWebkit;
 		var files = [];
 		// Display the message in the drop zone
-		if (chrome) {
+		if (webkit) {
 			document.getElementById("dropMessage").innerHTML = "Drag n'drop your files or folders here";
 		}
 		else {
@@ -37,9 +36,9 @@ angular.module('data-transfer')
 		// onDrop event of the dropZone
 		dropZone.ondrop = function (ev) {
 			ev.preventDefault(); // Prevent dropped file to be openned in the browser
-			var droppedFiles = chrome ? ev.dataTransfer.items : ev.dataTransfer.files; // Dropped files array affected depending on the browser
+			var droppedFiles = webkit ? ev.dataTransfer.items : ev.dataTransfer.files; // Dropped files array affected depending on the browser
 			for (var i = 0; i < droppedFiles.length; i++) {
-				if (chrome) {
+				if (webkit) {
 					var entry = droppedFiles[i].webkitGetAsEntry();
 					if (entry.isDirectory) {
 						$scope.scanDirectory(entry);

@@ -4,19 +4,79 @@ angular.module('data-transfer')
 
 	.factory('browserDetectionService', function () {
 		return {
-			isChrome: function () {
-				return true;
-			},
 			getBrowserInfo: function () {
-				var browserInfo = {};
-				var webkit = detectWebKit();
-				console.debug(webkit);
-				browserInfo.hasWebkit = webkit.iswebkit;
-				browserInfo.webkitVersion = parseFloat(webkit.version);
-				browserInfo.name = webkit.browser.substr(0, webkit.browser.search(/\d/));
-				browserInfo.version = webkit.browser.substr(webkit.browser.search(/\d/));
+				// Code found at http://www.javascripter.net/faq/browsern.htm
+				var nVer = navigator.appVersion;
+				var nAgt = navigator.userAgent;
+				var browserName = navigator.appName;
+				var fullVersion = '' + parseFloat(navigator.appVersion);
+				var majorVersion = parseInt(navigator.appVersion, 10);
+				var nameOffset, verOffset, ix;
 
-				return browserInfo;
+				// In Opera 15+, the true version is after "OPR/" 
+				if ((verOffset = nAgt.indexOf("OPR/")) != -1) {
+					browserName = "Opera";
+					fullVersion = nAgt.substring(verOffset + 4);
+				}
+				// In older Opera, the true version is after "Opera" or after "Version"
+				else if ((verOffset = nAgt.indexOf("Opera")) != -1) {
+					browserName = "Opera";
+					fullVersion = nAgt.substring(verOffset + 6);
+					if ((verOffset = nAgt.indexOf("Version")) != -1)
+						fullVersion = nAgt.substring(verOffset + 8);
+				}
+				// In MSIE, the true version is after "MSIE" in userAgent
+				else if ((verOffset = nAgt.indexOf("MSIE")) != -1) {
+					browserName = "Microsoft Internet Explorer";
+					fullVersion = nAgt.substring(verOffset + 5);
+				}
+				// In Chrome, the true version is after "Chrome" 
+				else if ((verOffset = nAgt.indexOf("Chrome")) != -1) {
+					browserName = "Chrome";
+					fullVersion = nAgt.substring(verOffset + 7);
+				}
+				// In Safari, the true version is after "Safari" or after "Version" 
+				else if ((verOffset = nAgt.indexOf("Safari")) != -1) {
+					browserName = "Safari";
+					fullVersion = nAgt.substring(verOffset + 7);
+					if ((verOffset = nAgt.indexOf("Version")) != -1)
+						fullVersion = nAgt.substring(verOffset + 8);
+				}
+				// In Firefox, the true version is after "Firefox" 
+				else if ((verOffset = nAgt.indexOf("Firefox")) != -1) {
+					browserName = "Firefox";
+					fullVersion = nAgt.substring(verOffset + 8);
+				}
+				// In most other browsers, "name/version" is at the end of userAgent 
+				else if ((nameOffset = nAgt.lastIndexOf(' ') + 1) <
+					(verOffset = nAgt.lastIndexOf('/'))) {
+					browserName = nAgt.substring(nameOffset, verOffset);
+					fullVersion = nAgt.substring(verOffset + 1);
+					if (browserName.toLowerCase() == browserName.toUpperCase()) {
+						browserName = navigator.appName;
+					}
+				}
+				// trim the fullVersion string at semicolon/space if present
+				if ((ix = fullVersion.indexOf(";")) != -1)
+					fullVersion = fullVersion.substring(0, ix);
+				if ((ix = fullVersion.indexOf(" ")) != -1)
+					fullVersion = fullVersion.substring(0, ix);
+
+				majorVersion = parseInt('' + fullVersion, 10);
+				if (isNaN(majorVersion)) {
+					fullVersion = '' + parseFloat(navigator.appVersion);
+					majorVersion = parseInt(navigator.appVersion, 10);
+				}
+				// End of copied code
+				
+				var webkit = detectWebKit();
+
+				return {
+					hasWebkit: webkit.iswebkit,
+					webkitVersion: this.hasWebkit ? parseFloat(webkit.version) : null,
+					name: browserName,
+					version: majorVersion
+				};
 			}
 		};
 	});
@@ -316,12 +376,11 @@ angular.module('data-transfer')
 angular.module('data-transfer')
 
 	.controller('dropController', ['$scope', 'browserDetectionService', 'transfersService', function ($scope, browserDetectionService, transfersService) {
-		var chrome = browserDetectionService.isChrome();
-		console.debug('Browser has webkit: ' + browserDetectionService.getBrowserInfo().hasWebkit + ' version: ' + browserDetectionService.getBrowserInfo().webkitVersion);
-		console.debug('Browser is ' + browserDetectionService.getBrowserInfo().name + ' version: ' + browserDetectionService.getBrowserInfo().version);
+		var browserInfo = browserDetectionService.getBrowserInfo();
+		var webkit = browserInfo.hasWebkit;
 		var files = [];
 		// Display the message in the drop zone
-		if (chrome) {
+		if (webkit) {
 			document.getElementById("dropMessage").innerHTML = "Drag n'drop your files or folders here";
 		}
 		else {
@@ -352,9 +411,9 @@ angular.module('data-transfer')
 		// onDrop event of the dropZone
 		dropZone.ondrop = function (ev) {
 			ev.preventDefault(); // Prevent dropped file to be openned in the browser
-			var droppedFiles = chrome ? ev.dataTransfer.items : ev.dataTransfer.files; // Dropped files array affected depending on the browser
+			var droppedFiles = webkit ? ev.dataTransfer.items : ev.dataTransfer.files; // Dropped files array affected depending on the browser
 			for (var i = 0; i < droppedFiles.length; i++) {
-				if (chrome) {
+				if (webkit) {
 					var entry = droppedFiles[i].webkitGetAsEntry();
 					if (entry.isDirectory) {
 						$scope.scanDirectory(entry);
