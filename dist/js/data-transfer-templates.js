@@ -2,8 +2,6 @@ angular.module('templates-dataTransfer', ['js/Directives/templates/dropZone.tpl.
 
 angular.module("js/Directives/templates/dropZone.tpl.html", []).run(["$templateCache", function($templateCache) {
   $templateCache.put("js/Directives/templates/dropZone.tpl.html",
-    "<link rel=\"stylesheet\" href=\"/dataTransfer/dist/css/data-transfer.css\" />\n" +
-    "\n" +
     "<div ng-controller=\"dropController\" id=\"dropZone\" class=\"dropZone\">\n" +
     "	<div class=\"dropZoneContent\">\n" +
     "		<i class=\"fa fa-file-o fa-3x\"></i><i class=\"fa fa-plus-circle\"></i><br/>\n" +
@@ -14,8 +12,6 @@ angular.module("js/Directives/templates/dropZone.tpl.html", []).run(["$templateC
 
 angular.module("js/Directives/templates/transfersView.tpl.html", []).run(["$templateCache", function($templateCache) {
   $templateCache.put("js/Directives/templates/transfersView.tpl.html",
-    "<link rel=\"stylesheet\" href=\"/dataTransfer/dist/css/data-transfer.css\" />\n" +
-    "\n" +
     "<div class=\"fileTransfersView\" ng-class=\"{'pull-bottom': page != 'upload'}\" id=\"fileTransfersView\" ng-controller=\"viewController\">\n" +
     "	<div class=\"fileTransfersViewHeader\" ng-show=\"page!='upload'\">\n" +
     "		<p>\n" +

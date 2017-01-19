@@ -6,6 +6,6 @@ angular.module('data-transfer')
 			scope: {
 				page: '='
 			},
-			templateUrl: '/dataTransfer/src/js/Directives/templates/transfersView.tpl.html'
+			templateUrl: 'js/Directives/templates/transfersView.tpl.html'
 		};
 	});

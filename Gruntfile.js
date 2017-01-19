@@ -48,7 +48,8 @@ module.exports = function (grunt) {
 		copy: {
 			all: {
 				files: [
-					{ dest: 'dist/libraries', src: '**', expand: true, cwd: 'libraries/' }
+					{ dest: 'dist/libraries', src: '**', expand: true, cwd: 'libraries/' },
+					{ dest: 'dist/settings.json', src: 'src/js/settings.json' }
 				]
 			}
 		},
@@ -67,7 +68,7 @@ module.exports = function (grunt) {
 		},
 		watch: {
 			libs: {
-				files: 'libraries/**',
+				files: ['libraries/**', 'src/js/settings.json'],
 				tasks: ['copy']
 			},
 			html: {

@@ -88,7 +88,7 @@ angular.module('data-transfer')
 		var settings; // Object that stores all settings
 		// Ajax request to settings.json file. Get settings in json format
 		$.ajax({
-			url: '/dataTransfer/src/js/settings.json',
+			url: '/dataTransfer/settings.json',
 			async: false,
 			dataType: 'json',
 			success: function (response) {
@@ -379,7 +379,7 @@ angular.module('data-transfer')
 	.directive('dtDropZone', function () {
 		return {
 			restrict: 'E',
-			templateUrl: '/dataTransfer/src/js/Directives/templates/dropZone.tpl.html'
+			templateUrl: 'js/Directives/templates/dropZone.tpl.html'
 		};
 	});
 ;
@@ -391,7 +391,7 @@ angular.module('data-transfer')
 			scope: {
 				page: '='
 			},
-			templateUrl: '/dataTransfer/src/js/Directives/templates/transfersView.tpl.html'
+			templateUrl: 'js/Directives/templates/transfersView.tpl.html'
 		};
 	});
 ;
