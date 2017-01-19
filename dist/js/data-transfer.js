@@ -659,3 +659,24 @@ angular.module('data-transfer')
 			}
 		};
 	});
+;
+angular.module('data-transfer')
+
+	.directive('dtDropZone', function () {
+		return {
+			restrict: 'E',
+			templateUrl: '/dataTransfer/src/js/Directives/templates/dropZone.html'
+		};
+	});
+;
+angular.module('data-transfer')
+
+	.directive('dtTransfersView', function () {
+		return {
+			restrict: 'E',
+			scope: {
+				page: '='
+			},
+			templateUrl: '/dataTransfer/src/js/Directives/templates/transfersView.html'
+		};
+	});

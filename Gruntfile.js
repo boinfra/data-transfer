@@ -18,7 +18,7 @@ module.exports = function (grunt) {
 				separator: '\n;\n'
 			},
 			dist: {
-				src: ['src/js/*.js', 'src/js/Services/*.js', 'src/js/Controllers/*.js'],
+				src: ['src/js/*.js', 'src/js/Services/*.js', 'src/js/Controllers/*.js', 'src/js/Directives/*.js'],
 				dest: '<%= dist.js %>/<%= pkg.name %>.js'
 			}
 		},
@@ -33,7 +33,7 @@ module.exports = function (grunt) {
 			}
 		},
 		jshint: {
-			files: ['Gruntfile.js', 'src/js/**/*.js'],
+			files: ['src/js/**/*.js'],
 			options: {
 				globals: {
 					jQuery: true,
