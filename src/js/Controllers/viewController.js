@@ -11,6 +11,7 @@ angular.module('data-transfer')
 		$scope.allSelected = false;
 
 		$(window).on('filePushed', function (e) {
+			// console.debug('File pushed');
 			files.push(e.file);
 			runningTransfers = transfersService.getRunningTransfers();
 			var sta = 'Queued';
