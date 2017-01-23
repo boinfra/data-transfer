@@ -9,7 +9,7 @@ module.exports = function (grunt) {
 		pkg: grunt.file.readJSON('package.json'),
 		banner: '/*! <%= pkg.name %> <%= grunt.template.today("dd.mm.yyyy") %> */\n',
 		src: {
-			js: ['src/js/*.js', 'src/js/Services/*.js', 'src/js/Directives/*.js', 'src/js/Controllers/*.js'],
+			js: ['src/js/*.js', 'src/js/services/*.js', 'src/js/directives/*.js', 'src/js/controllers/*.js'],
 			html: ['src/js/**/*.tpl.html'],
 			css: ['src/css/**/*.css']
 		},

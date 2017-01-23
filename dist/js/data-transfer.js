@@ -267,7 +267,7 @@ angular.module('data-transfer')
 		var files = [];
 		var autoRetries = [];
 		var filePushed = $.Event('filePushed');
-		var service = serviceFactory.getService('upload');
+		var service = serviceFactory.getService('mock');
 		var runningTransfers = [];
 		var concurentTransfers = configService.getConcurentTransfersQty(); // Get the number of transfers that can run at the same time
 		var transfersCompleted = 0; // Number of completed transfers
@@ -326,9 +326,6 @@ angular.module('data-transfer')
 			removeFile: function (file) {
 				var index = files.indexOf(file);
 				files.splice(index, 1);
-				var remove = $.Event('remove');
-				remove.file = file;
-				$(window).trigger(remove);
 			},
 			start: function (file) {
 				if (runningTransfers.length < concurentTransfers) {
@@ -379,7 +376,7 @@ angular.module('data-transfer')
 	.directive('dtDropZone', function () {
 		return {
 			restrict: 'E',
-			templateUrl: 'js/Directives/templates/dropZone.tpl.html'
+			templateUrl: 'js/directives/templates/dropZone.tpl.html'
 		};
 	});
 ;
@@ -391,7 +388,7 @@ angular.module('data-transfer')
 			scope: {
 				page: '='
 			},
-			templateUrl: 'js/Directives/templates/transfersView.tpl.html'
+			templateUrl: 'js/directives/templates/transfersView.tpl.html'
 		};
 	});
 ;
@@ -514,21 +511,14 @@ angular.module('data-transfer')
 					return (Number((size).toFixed(0))) + (cptDiv == 2 ? ' MB' : cptDiv == 1 ? ' KB' : ' B');
 				},
 				status: sta,
-				transferType: 'Upload'
+				transferType: 'Upload',
+				selected: false
 			};
 			filesVM.push(newFileVM);
 			$scope.displayedTransfers.push(newFileVM);
 			$scope.definePagination();
 			$scope.changePage(currentPage);
 			$scope.$apply();
-		});
-
-		$(window).on('remove', function (e) {
-			var index = files.indexOf(e.file);
-			files.splice(index, 1);
-			filesVM.splice(index, 1);
-			$scope.definePagination();
-			$scope.changePage(currentPage);
 		});
 
 		$(window).on('run', function (e) {
@@ -551,41 +541,34 @@ angular.module('data-transfer')
 			}
 		});
 
-		$scope.delete = function () {
-			for (var i = 0; i < $scope.displayedTransfers.length; i++) {
-				if ($scope.displayedTransfers[i].selected) {
-					transfersService.removeFile(files[i]);
-					$scope.selectedTransfers.splice(i, 1);
-				}
-			}
+		$scope.getSelectedTransfers = function () {
+			return $scope.displayedTransfers.filter(function (t) {
+				return t.selected;
+			});
 		};
 
 		$scope.toggleAll = function () {
-			if ($scope.selectedTransfers.length === 0) { // No transfer is selected
-				for (var i = 0; i < transfersService.getFiles().length; i++) {
-					$scope.selectedTransfers.push($scope.displayedTransfers[i]);
-					$scope.displayedTransfers[i].selected = true;
-					$scope.allSelected = true;
-				}
+			if ($scope.getSelectedTransfers().length === $scope.displayedTransfers.length) {
+				$scope.displayedTransfers.forEach(function (t) {
+					t.selected = false;
+				});
 			}
 			else {
-				$scope.selectedTransfers = [];
-				for (var j = 0; j < $scope.displayedTransfers.length; j++) {
-					$scope.displayedTransfers[j].selected = false;
-					$scope.allSelected = false;
-				}
+				$scope.displayedTransfers.forEach(function (t) {
+					t.selected = true;
+				});
 			}
 		};
 
-		$scope.toggleSelected = function (trans) {
-			var index = $scope.selectedTransfers.indexOf(trans);
-			if (index === -1) { // If the transfer is not selected
-				$scope.selectedTransfers.push(trans);
-			}
-			else {
-				$scope.selectedTransfers.splice(index, 1);
-			}
-			$scope.allSelected = $scope.selectedTransfers.length > 0;
+		$scope.delete = function () {
+			$scope.getSelectedTransfers().forEach(function (t) {
+				var index = filesVM.indexOf(t);
+				transfersService.removeFile(files[index]);
+				filesVM.splice(index, 1);
+				files.splice(index, 1);
+			});
+			$scope.definePagination();
+			$scope.changePage(currentPage);
 		};
 
 		$scope.start = function (trans) {

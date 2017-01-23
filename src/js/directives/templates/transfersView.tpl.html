@@ -11,13 +11,13 @@
 			</span>
 		</p>
 	</div>
-	<button class="btn btn-danger" ng-show="selectedTransfers.length > 0" ng-click="delete()">Delete selected</button>
+	<button class="btn btn-danger" ng-show="getSelectedTransfers().length > 0" ng-click="delete()">Delete selected</button>
 	<div id="fileTransfersViewBody" class="fileTransfersViewBody">
 		<div class="collapse in" id="fileTransfersTable">
 			<table class="table table-condensed borderless">
 				<thead>
 					<tr>
-						<th><input type="checkbox" ng-model="allSelected" ng-change="toggleAll()"/></th>
+						<th><input type="checkbox" ng-checked="(getSelectedTransfers().length === displayedTransfers.length) && displayedTransfers.length > 0" ng-click="toggleAll()"/></th>
 						<th>Name</th>
 						<th>Size</th>
 						<th>Transfer type</th>
@@ -32,7 +32,7 @@
 					<tr ng-repeat="transfer in displayedTransfers" on-finish-render="ngRepeatFinished" 
 						ng-show="transfer.transferType=='Upload' || page!='upload'"
 						ng-class="{'Failed': 'danger', 'Succeeded': 'success'} [transfer.status]">
-						<td><input type="checkbox" ng-model="transfer.selected" ng-change="toggleSelected(transfer)"/></td>
+						<td><input type="checkbox" ng-model="transfer.selected"/></td>
 						<td>{{transfer.name}}</td>
 						<td>{{transfer.displaySize()}}</td>
 						<td>
@@ -51,8 +51,6 @@
 						<td>{{transfer.remainingTime}}</td>
 						<td>
 							<i class="fa fa-play fa-lg" ng-click="start(transfer)" ng-show="transfer.status == 'Paused' || transfer.status == 'Queued' || transfer.status == 'Failed'"></i>
-							<!--<i class="fa fa-pause fa-lg" ng-click="pause(transfer)" ng-show="transfer.status == 'Pending'"></i>
-							<i class="fa fa-stop fa-lg" ng-click="stop(transfer)" ng-show="transfer.status == 'Pending' || transfer.status == 'Paused'"></i>-->
 						</td>
 					</tr>
 				</tbody>

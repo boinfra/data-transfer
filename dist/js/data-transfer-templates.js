@@ -1,7 +1,7 @@
-angular.module('templates-dataTransfer', ['js/Directives/templates/dropZone.tpl.html', 'js/Directives/templates/transfersView.tpl.html']);
+angular.module('templates-dataTransfer', ['js/directives/templates/dropZone.tpl.html', 'js/directives/templates/transfersView.tpl.html']);
 
-angular.module("js/Directives/templates/dropZone.tpl.html", []).run(["$templateCache", function($templateCache) {
-  $templateCache.put("js/Directives/templates/dropZone.tpl.html",
+angular.module("js/directives/templates/dropZone.tpl.html", []).run(["$templateCache", function($templateCache) {
+  $templateCache.put("js/directives/templates/dropZone.tpl.html",
     "<div ng-controller=\"dropController\" id=\"dropZone\" class=\"dropZone\">\n" +
     "	<div class=\"dropZoneContent\">\n" +
     "		<i class=\"fa fa-file-o fa-3x\"></i><i class=\"fa fa-plus-circle\"></i><br/>\n" +
@@ -10,8 +10,8 @@ angular.module("js/Directives/templates/dropZone.tpl.html", []).run(["$templateC
     "</div>");
 }]);
 
-angular.module("js/Directives/templates/transfersView.tpl.html", []).run(["$templateCache", function($templateCache) {
-  $templateCache.put("js/Directives/templates/transfersView.tpl.html",
+angular.module("js/directives/templates/transfersView.tpl.html", []).run(["$templateCache", function($templateCache) {
+  $templateCache.put("js/directives/templates/transfersView.tpl.html",
     "<div class=\"fileTransfersView\" ng-class=\"{'pull-bottom': page != 'upload'}\" id=\"fileTransfersView\" ng-controller=\"viewController\">\n" +
     "	<div class=\"fileTransfersViewHeader\" ng-show=\"page!='upload'\">\n" +
     "		<p>\n" +
@@ -25,13 +25,13 @@ angular.module("js/Directives/templates/transfersView.tpl.html", []).run(["$temp
     "			</span>\n" +
     "		</p>\n" +
     "	</div>\n" +
-    "	<button class=\"btn btn-danger\" ng-show=\"selectedTransfers.length > 0\" ng-click=\"delete()\">Delete selected</button>\n" +
+    "	<button class=\"btn btn-danger\" ng-show=\"getSelectedTransfers().length > 0\" ng-click=\"delete()\">Delete selected</button>\n" +
     "	<div id=\"fileTransfersViewBody\" class=\"fileTransfersViewBody\">\n" +
     "		<div class=\"collapse in\" id=\"fileTransfersTable\">\n" +
     "			<table class=\"table table-condensed borderless\">\n" +
     "				<thead>\n" +
     "					<tr>\n" +
-    "						<th><input type=\"checkbox\" ng-model=\"allSelected\" ng-change=\"toggleAll()\"/></th>\n" +
+    "						<th><input type=\"checkbox\" ng-checked=\"(getSelectedTransfers().length === displayedTransfers.length) && displayedTransfers.length > 0\" ng-click=\"toggleAll()\"/></th>\n" +
     "						<th>Name</th>\n" +
     "						<th>Size</th>\n" +
     "						<th>Transfer type</th>\n" +
@@ -46,7 +46,7 @@ angular.module("js/Directives/templates/transfersView.tpl.html", []).run(["$temp
     "					<tr ng-repeat=\"transfer in displayedTransfers\" on-finish-render=\"ngRepeatFinished\" \n" +
     "						ng-show=\"transfer.transferType=='Upload' || page!='upload'\"\n" +
     "						ng-class=\"{'Failed': 'danger', 'Succeeded': 'success'} [transfer.status]\">\n" +
-    "						<td><input type=\"checkbox\" ng-model=\"transfer.selected\" ng-change=\"toggleSelected(transfer)\"/></td>\n" +
+    "						<td><input type=\"checkbox\" ng-model=\"transfer.selected\"/></td>\n" +
     "						<td>{{transfer.name}}</td>\n" +
     "						<td>{{transfer.displaySize()}}</td>\n" +
     "						<td>\n" +
@@ -65,8 +65,6 @@ angular.module("js/Directives/templates/transfersView.tpl.html", []).run(["$temp
     "						<td>{{transfer.remainingTime}}</td>\n" +
     "						<td>\n" +
     "							<i class=\"fa fa-play fa-lg\" ng-click=\"start(transfer)\" ng-show=\"transfer.status == 'Paused' || transfer.status == 'Queued' || transfer.status == 'Failed'\"></i>\n" +
-    "							<!--<i class=\"fa fa-pause fa-lg\" ng-click=\"pause(transfer)\" ng-show=\"transfer.status == 'Pending'\"></i>\n" +
-    "							<i class=\"fa fa-stop fa-lg\" ng-click=\"stop(transfer)\" ng-show=\"transfer.status == 'Pending' || transfer.status == 'Paused'\"></i>-->\n" +
     "						</td>\n" +
     "					</tr>\n" +
     "				</tbody>\n" +

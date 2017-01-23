@@ -5,7 +5,7 @@ angular.module('data-transfer')
 		var files = [];
 		var autoRetries = [];
 		var filePushed = $.Event('filePushed');
-		var service = serviceFactory.getService('upload');
+		var service = serviceFactory.getService('mock');
 		var runningTransfers = [];
 		var concurentTransfers = configService.getConcurentTransfersQty(); // Get the number of transfers that can run at the same time
 		var transfersCompleted = 0; // Number of completed transfers
@@ -64,9 +64,6 @@ angular.module('data-transfer')
 			removeFile: function (file) {
 				var index = files.indexOf(file);
 				files.splice(index, 1);
-				var remove = $.Event('remove');
-				remove.file = file;
-				$(window).trigger(remove);
 			},
 			start: function (file) {
 				if (runningTransfers.length < concurentTransfers) {

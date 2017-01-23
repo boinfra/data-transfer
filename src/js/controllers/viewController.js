@@ -33,21 +33,14 @@ angular.module('data-transfer')
 					return (Number((size).toFixed(0))) + (cptDiv == 2 ? ' MB' : cptDiv == 1 ? ' KB' : ' B');
 				},
 				status: sta,
-				transferType: 'Upload'
+				transferType: 'Upload',
+				selected: false
 			};
 			filesVM.push(newFileVM);
 			$scope.displayedTransfers.push(newFileVM);
 			$scope.definePagination();
 			$scope.changePage(currentPage);
 			$scope.$apply();
-		});
-
-		$(window).on('remove', function (e) {
-			var index = files.indexOf(e.file);
-			files.splice(index, 1);
-			filesVM.splice(index, 1);
-			$scope.definePagination();
-			$scope.changePage(currentPage);
 		});
 
 		$(window).on('run', function (e) {
@@ -70,41 +63,34 @@ angular.module('data-transfer')
 			}
 		});
 
-		$scope.delete = function () {
-			for (var i = 0; i < $scope.displayedTransfers.length; i++) {
-				if ($scope.displayedTransfers[i].selected) {
-					transfersService.removeFile(files[i]);
-					$scope.selectedTransfers.splice(i, 1);
-				}
-			}
+		$scope.getSelectedTransfers = function () {
+			return $scope.displayedTransfers.filter(function (t) {
+				return t.selected;
+			});
 		};
 
 		$scope.toggleAll = function () {
-			if ($scope.selectedTransfers.length === 0) { // No transfer is selected
-				for (var i = 0; i < transfersService.getFiles().length; i++) {
-					$scope.selectedTransfers.push($scope.displayedTransfers[i]);
-					$scope.displayedTransfers[i].selected = true;
-					$scope.allSelected = true;
-				}
+			if ($scope.getSelectedTransfers().length === $scope.displayedTransfers.length) {
+				$scope.displayedTransfers.forEach(function (t) {
+					t.selected = false;
+				});
 			}
 			else {
-				$scope.selectedTransfers = [];
-				for (var j = 0; j < $scope.displayedTransfers.length; j++) {
-					$scope.displayedTransfers[j].selected = false;
-					$scope.allSelected = false;
-				}
+				$scope.displayedTransfers.forEach(function (t) {
+					t.selected = true;
+				});
 			}
 		};
 
-		$scope.toggleSelected = function (trans) {
-			var index = $scope.selectedTransfers.indexOf(trans);
-			if (index === -1) { // If the transfer is not selected
-				$scope.selectedTransfers.push(trans);
-			}
-			else {
-				$scope.selectedTransfers.splice(index, 1);
-			}
-			$scope.allSelected = $scope.selectedTransfers.length > 0;
+		$scope.delete = function () {
+			$scope.getSelectedTransfers().forEach(function (t) {
+				var index = filesVM.indexOf(t);
+				transfersService.removeFile(files[index]);
+				filesVM.splice(index, 1);
+				files.splice(index, 1);
+			});
+			$scope.definePagination();
+			$scope.changePage(currentPage);
 		};
 
 		$scope.start = function (trans) {
