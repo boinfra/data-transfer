@@ -12,6 +12,7 @@
 		</p>
 	</div>
 	<button class="btn btn-danger" ng-show="getSelectedTransfers().length > 0" ng-click="delete()">Delete selected</button>
+	<button class="btn btn-success" ng-show="getSelectedTransfers().length > 0" ng-click="startSelected()">Start selected</button>	
 	<div id="fileTransfersViewBody" class="fileTransfersViewBody">
 		<div class="collapse in" id="fileTransfersTable">
 			<table class="table table-condensed borderless">

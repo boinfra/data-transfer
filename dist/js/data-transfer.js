@@ -267,7 +267,7 @@ angular.module('data-transfer')
 		var files = [];
 		var autoRetries = [];
 		var filePushed = $.Event('filePushed');
-		var service = serviceFactory.getService('mock');
+		var service = serviceFactory.getService('upload');
 		var runningTransfers = [];
 		var concurentTransfers = configService.getConcurentTransfersQty(); // Get the number of transfers that can run at the same time
 		var transfersCompleted = 0; // Number of completed transfers
@@ -578,6 +578,14 @@ angular.module('data-transfer')
 		$scope.start = function (trans) {
 			var index = filesVM.indexOf(trans);
 			transfersService.start(files[index]);
+		};
+
+		$scope.startSelected = function () {
+			$scope.getSelectedTransfers().forEach(function (t) {
+				if (t.selected) {
+					transfersService.start(files[filesVM.indexOf(t)]);
+				}	
+			});
 		};
 
 		// Function that changes the page of the table (by changing displayed transfers)

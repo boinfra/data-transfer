@@ -26,6 +26,7 @@ angular.module("js/directives/templates/transfersView.tpl.html", []).run(["$temp
     "		</p>\n" +
     "	</div>\n" +
     "	<button class=\"btn btn-danger\" ng-show=\"getSelectedTransfers().length > 0\" ng-click=\"delete()\">Delete selected</button>\n" +
+    "	<button class=\"btn btn-success\" ng-show=\"getSelectedTransfers().length > 0\" ng-click=\"startSelected()\">Start selected</button>	\n" +
     "	<div id=\"fileTransfersViewBody\" class=\"fileTransfersViewBody\">\n" +
     "		<div class=\"collapse in\" id=\"fileTransfersTable\">\n" +
     "			<table class=\"table table-condensed borderless\">\n" +

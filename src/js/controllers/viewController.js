@@ -98,6 +98,14 @@ angular.module('data-transfer')
 			transfersService.start(files[index]);
 		};
 
+		$scope.startSelected = function () {
+			$scope.getSelectedTransfers().forEach(function (t) {
+				if (t.selected) {
+					transfersService.start(files[filesVM.indexOf(t)]);
+				}	
+			});
+		};
+
 		// Function that changes the page of the table (by changing displayed transfers)
 		// num: number of the page to display
 		$scope.changePage = function (num) {
