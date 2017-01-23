@@ -326,6 +326,9 @@ angular.module('data-transfer')
 			removeFile: function (file) {
 				var index = files.indexOf(file);
 				files.splice(index, 1);
+				var remove = $.Event('remove');
+				remove.index = index;
+				$(window).trigger(remove);
 			},
 			start: function (file) {
 				if (runningTransfers.length < concurentTransfers) {
@@ -397,7 +400,6 @@ angular.module('data-transfer')
 	.controller('dropController', ['$scope', 'browserDetectionService', 'transfersService', function ($scope, browserDetectionService, transfersService) {
 		var browserInfo = browserDetectionService.getBrowserInfo();
 		var webkit = browserInfo.hasWebkit;
-		var files = [];
 		var hashes = [];
 		// Display the message in the drop zone
 		if (webkit) {
@@ -406,6 +408,10 @@ angular.module('data-transfer')
 		else {
 			document.getElementById("dropMessage").innerHTML = "Drag n'drop your files here";
 		}
+
+		$(window).on('remove', function (e) {
+			hashes.splice(e.index, 1);		
+		});
 
 		var dropZone = document.getElementById("dropZone");
 
@@ -433,7 +439,6 @@ angular.module('data-transfer')
 			}
 			if (!alreadyDropped) {
 				hashes.push(hash);
-				files.push(file);
 				transfersService.pushFile(file);
 			}
 		}
@@ -453,7 +458,6 @@ angular.module('data-transfer')
 					}
 				}
 				else {
-					files.push(droppedFiles[i]);
 					transfersService.pushFile(droppedFiles[i]);
 				}
 			}
