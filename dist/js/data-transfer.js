@@ -1,4 +1,4 @@
-/*! data-transfer 20.01.2017 */
+/*! data-transfer 23.01.2017 */
 angular.module('data-transfer', ['ui.bootstrap', 'ngResource', 'templates-dataTransfer']); // Creation of the main module of the framework
 ;
 angular.module('data-transfer')
@@ -265,7 +265,6 @@ angular.module('data-transfer')
 	.factory('transfersService', ['serviceFactory', 'configService', function (serviceFactory, configService) {
 
 		var files = [];
-		var fakeFiles = [];
 		var autoRetries = [];
 		var filePushed = $.Event('filePushed');
 		var service = serviceFactory.getService('upload');
@@ -275,32 +274,6 @@ angular.module('data-transfer')
 
 		var run = $.Event('run');
 		run.state = 'Pending';
-
-		window.onbeforeunload = function () {
-			var transfersToSave = JSON.stringify(fakeFiles);
-			localStorage.setItem('transfers', transfersToSave);
-			// localStorage.setItem('transfers', '[]');
-		};
-
-		$(document).ready(function () {
-			var savedTransfers = localStorage.getItem('transfers');
-			fakeFiles = JSON.parse(savedTransfers);
-			for (var i = 0; i < fakeFiles.length; i++) {
-				var f = new File([], fakeFiles[i].name);
-				f.lastModified = fakeFiles[i].lastModified;
-				f.lastModifiedDate = fakeFiles[i].lastModifiedDate;
-				f.size = fakeFiles[i].size;
-				// console.debug(f.size);
-				f.type = fakeFiles[i].type;
-				files.push(f);
-				filePushed.status = configService.getAutoStart() ? 'Pending' : 'Queued';
-				filePushed.file = f;
-				$(window).trigger(filePushed);
-				if (configService.getAutoStart()) {
-					this.start(f);
-				}
-			}
-		});
 
 		// Event triggered by the service when an upload is finished
 		$(window).on('complete', function (e) {
@@ -338,14 +311,6 @@ angular.module('data-transfer')
 
 		return {
 			pushFile: function (file) {
-				var fakeFile = {
-					lastModified: file.lastModified,
-					lastModifiedDate: file.lastModifiedDate,
-					name: file.name,
-					size: file.size,
-					type: file.type
-				};
-				fakeFiles.push(fakeFile);
 				files.push(file);
 				autoRetries.push(0);
 				filePushed.status = configService.getAutoStart() ? 'Pending' : 'Queued';
@@ -527,7 +492,6 @@ angular.module('data-transfer')
 		$scope.allSelected = false;
 
 		$(window).on('filePushed', function (e) {
-			// console.debug('File pushed');
 			files.push(e.file);
 			runningTransfers = transfersService.getRunningTransfers();
 			var sta = 'Queued';
