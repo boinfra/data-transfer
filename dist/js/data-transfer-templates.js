@@ -25,14 +25,14 @@ angular.module("js/directives/templates/transfersView.tpl.html", []).run(["$temp
     "			</span>\n" +
     "		</p>\n" +
     "	</div>\n" +
-    "	<button class=\"btn btn-danger\" ng-show=\"getSelectedTransfers().length > 0\" ng-click=\"delete()\">Delete selected</button>\n" +
-    "	<button class=\"btn btn-success\" ng-show=\"getSelectedTransfers().length > 0\" ng-click=\"startSelected()\">Start selected</button>	\n" +
+    "	<button class=\"btn btn-danger\" ng-show=\"selectedTransfers.length > 0\" ng-click=\"delete()\">Delete selected</button>\n" +
+    "	<button class=\"btn btn-success\" ng-show=\"selectedTransfers.length > 0\" ng-click=\"startSelected()\">Start selected</button>	\n" +
     "	<div id=\"fileTransfersViewBody\" class=\"fileTransfersViewBody\">\n" +
     "		<div class=\"collapse in\" id=\"fileTransfersTable\">\n" +
     "			<table class=\"table table-condensed borderless\">\n" +
     "				<thead>\n" +
     "					<tr>\n" +
-    "						<th><input type=\"checkbox\" ng-checked=\"(getSelectedTransfers().length === displayedTransfers.length) && displayedTransfers.length > 0\" ng-click=\"toggleAll()\"/></th>\n" +
+    "						<th><input type=\"checkbox\" ng-checked=\"(selectedTransfers.length === displayedTransfers.length) && displayedTransfers.length > 0\" ng-click=\"toggleAll()\"/></th>\n" +
     "						<th>Name</th>\n" +
     "						<th>Size</th>\n" +
     "						<th>Transfer type</th>\n" +
@@ -47,7 +47,7 @@ angular.module("js/directives/templates/transfersView.tpl.html", []).run(["$temp
     "					<tr ng-repeat=\"transfer in displayedTransfers\" on-finish-render=\"ngRepeatFinished\" \n" +
     "						ng-show=\"transfer.transferType=='Upload' || page!='upload'\"\n" +
     "						ng-class=\"{'Failed': 'danger', 'Succeeded': 'success'} [transfer.status]\">\n" +
-    "						<td><input type=\"checkbox\" ng-model=\"transfer.selected\"/></td>\n" +
+    "						<td><input type=\"checkbox\" ng-checked=\"transfer.selected\" ng-click=\"toggle(transfer)\"/></td>\n" +
     "						<td>{{transfer.name}}</td>\n" +
     "						<td>{{transfer.displaySize()}}</td>\n" +
     "						<td>\n" +

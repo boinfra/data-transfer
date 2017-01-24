@@ -268,6 +268,7 @@ angular.module('data-transfer')
 		var autoRetries = [];
 		var filePushed = $.Event('filePushed');
 		var service = serviceFactory.getService('mock');
+		var transfersToRun = [];
 		var runningTransfers = [];
 		var concurentTransfers = configService.getConcurentTransfersQty(); // Get the number of transfers that can run at the same time
 		var transfersCompleted = 0; // Number of completed transfers
@@ -277,10 +278,15 @@ angular.module('data-transfer')
 
 		// Event triggered by the service when an upload is finished
 		$(window).on('complete', function (e) {
-			var index = files.indexOf(e.file); // Get the index of the file in the transfers array
+			var finished = $.Event('finished');
+			finished.file = e.file;
+			finished.service = e.service;
+			finished.state = e.state;
 			runningTransfers.splice(index, 1); // Remove succeeded transfer from running transfers array
+			var index = transfersToRun.indexOf(e.file); // Get the index of the file in the transfers array
 			var offset = concurentTransfers - 1; // Offset for the index to get the next transfer
 			if (e.state === 'Succeeded') { // If upload has succeeded
+				$(window).trigger(finished);
 				transfersCompleted++; // Incerment the counter of completed transfers
 				if (transfersCompleted < files.length - offset) { // If there is still queued transfers
 					if (configService.getAutoStart()) { // If upload should start automatically
@@ -307,6 +313,7 @@ angular.module('data-transfer')
 						run.file = files[transfersCompleted + offset];
 						$(window).trigger(run);
 					}
+					$(window).trigger(finished);
 				}
 			}
 		});
@@ -328,11 +335,16 @@ angular.module('data-transfer')
 			removeFile: function (file) {
 				var index = files.indexOf(file);
 				files.splice(index, 1);
+				transfersToRun.splice(index, 1);
+				runningTransfers.splice(index, 1);
+				transfersCompleted = 0;
 				var remove = $.Event('remove');
 				remove.index = index;
 				$(window).trigger(remove);
 			},
 			start: function (file) {
+				transfersToRun.push(file);
+				autoRetries[files.indexOf(file)] = 0;
 				if (runningTransfers.length < concurentTransfers) {
 					runningTransfers.push(file);
 					service.uploadFile(file);
@@ -493,6 +505,7 @@ angular.module('data-transfer')
 		$scope.selectedTransfers = [];
 		var currentPage = 1;
 		$scope.allSelected = false;
+		var selectedTransfersCompleted = 0;
 
 		$(window).on('filePushed', function (e) {
 			files.push(e.file);
@@ -539,40 +552,59 @@ angular.module('data-transfer')
 			$scope.$apply();
 		});
 
-		$(window).on('complete', function (e) {
+		$(window).on('finished', function (e) {
 			var index = files.indexOf(e.file); // Get the index of the file in the transfers array
+			if ($scope.selectedTransfers.length > 0) {
+				if ($scope.selectedTransfers.indexOf(filesVM[index]) > -1) {
+					var offset = selectedTransfersCompleted + configService.getConcurentTransfersQty();
+					selectedTransfersCompleted++;
+					if (offset < $scope.selectedTransfers.length) {
+						$scope.start($scope.selectedTransfers[offset]);
+					}
+				}
+			}
 			filesVM[index].status = e.state;
 			if (e.service === 'mock') {
 				$scope.$apply();
 			}
 		});
 
-		$scope.getSelectedTransfers = function () {
-			return $scope.displayedTransfers.filter(function (t) {
+		$scope.toggle = function (transfer) {
+			transfer.selected = !transfer.selected;
+			$scope.selectedTransfers = $scope.displayedTransfers.filter(function (t) {
 				return t.selected;
 			});
 		};
 
 		$scope.toggleAll = function () {
-			if ($scope.getSelectedTransfers().length === $scope.displayedTransfers.length) {
+			if ($scope.selectedTransfers.length === $scope.displayedTransfers.length) {
 				$scope.displayedTransfers.forEach(function (t) {
-					t.selected = false;
+					if (t.selected) {
+						$scope.toggle(t);
+					}
 				});
 			}
 			else {
 				$scope.displayedTransfers.forEach(function (t) {
-					t.selected = true;
+					if (!t.selected) {
+						$scope.toggle(t);
+					}
 				});
 			}
+			$scope.selectedTransfers = $scope.displayedTransfers.filter(function (t) {
+				return t.selected;
+			});
 		};
 
 		$scope.delete = function () {
-			$scope.getSelectedTransfers().forEach(function (t) {
+			$scope.selectedTransfers.forEach(function (t) {
 				var index = filesVM.indexOf(t);
 				transfersService.removeFile(files[index]);
 				filesVM.splice(index, 1);
 				files.splice(index, 1);
 			});
+			$scope.selectedTransfers = [];
+			selectedTransfersCompleted = 0;
 			$scope.definePagination();
 			$scope.changePage(currentPage);
 		};
@@ -583,10 +615,8 @@ angular.module('data-transfer')
 		};
 
 		$scope.startSelected = function () {
-			$scope.getSelectedTransfers().forEach(function (t) {
-				if (t.selected) {
-					transfersService.start(files[filesVM.indexOf(t)]);
-				}	
+			$scope.selectedTransfers.forEach(function (t) {
+				$scope.start(t);
 			});
 		};
 

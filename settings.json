@@ -1,6 +1,6 @@
 {
 	"autoStart": false,
-	"autoRetriesQty": 3,
+	"autoRetriesQty": 1,
 	"_comment": "Set autoRetriesQty to 0 if you don't want failed uploads to restart automatically",
 	"concurentTransfersQty": 3, 
 	"apiEndpointURL": "/api/upload",
