@@ -4,21 +4,24 @@ angular.module('data-transfer')
 
 		var files = [];
 		var filesVM = [];
-		var runningTransfers = [];
+		$scope.runningTransfers = [];
 		$scope.displayedTransfers = [];
 		$scope.selectedTransfers = [];
+		$scope.failedTransfers = [];
 		var currentPage = 1;
 		$scope.allSelected = false;
 		var selectedTransfersCompleted = 0;
+		var failedTransfersRetried = 0;
+		$scope.areTransfersRunning = false;
 
 		$(window).on('filePushed', function (e) {
 			files.push(e.file);
-			runningTransfers = transfersService.getRunningTransfers();
+			$scope.runningTransfers = transfersService.getRunningTransfers();
 			var sta = 'Queued';
-			for (var i = 0; i < runningTransfers.length; i++) {
-				if (runningTransfers[i].name == e.file.name) {
+			for (var i = 0; i < $scope.runningTransfers.length; i++) {
+				if ($scope.runningTransfers[i].name == e.file.name) {
 					sta = 'Pending';
-					i = runningTransfers.length;
+					i = $scope.runningTransfers.length;
 				}
 			}
 			var newFileVM = {
@@ -58,16 +61,32 @@ angular.module('data-transfer')
 
 		$(window).on('finished', function (e) {
 			var index = files.indexOf(e.file); // Get the index of the file in the transfers array
+			var offset = 0;
 			if ($scope.selectedTransfers.length > 0) {
 				if ($scope.selectedTransfers.indexOf(filesVM[index]) > -1) {
-					var offset = selectedTransfersCompleted + configService.getConcurentTransfersQty();
+					offset = selectedTransfersCompleted + configService.getConcurentTransfersQty();
 					selectedTransfersCompleted++;
 					if (offset < $scope.selectedTransfers.length) {
 						$scope.start($scope.selectedTransfers[offset]);
 					}
 				}
 			}
+			if ($scope.failedTransfers.length > 0) {
+				if ($scope.failedTransfers.indexOf(filesVM[index]) > -1) {
+					offset = failedTransfersRetried + configService.getConcurentTransfersQty();
+					failedTransfersRetried++;
+					if (offset < $scope.failedTransfers.length) {
+						$scope.start($scope.failedTransfers[offset]);
+					}
+				}
+			}
 			filesVM[index].status = e.state;
+			$scope.failedTransfers = filesVM.filter(function (t) {
+				return t.status === 'Failed';
+			});
+			$scope.areTransfersRunning = filesVM.filter(function (t) {
+				return t.status === 'Pending';
+			}).length > 0;
 			if (e.service === 'mock') {
 				$scope.$apply();
 			}
@@ -107,8 +126,12 @@ angular.module('data-transfer')
 				filesVM.splice(index, 1);
 				files.splice(index, 1);
 			});
+			$scope.failedTransfers = filesVM.filter(function (t) {
+				return t.status === 'Failed';
+			});
 			$scope.selectedTransfers = [];
 			selectedTransfersCompleted = 0;
+			failedTransfersRetried = 0;
 			$scope.definePagination();
 			$scope.changePage(currentPage);
 		};
@@ -120,6 +143,12 @@ angular.module('data-transfer')
 
 		$scope.startSelected = function () {
 			$scope.selectedTransfers.forEach(function (t) {
+				$scope.start(t);
+			});
+		};
+
+		$scope.retryFailed = function () {
+			$scope.failedTransfers.forEach(function (t) {
 				$scope.start(t);
 			});
 		};

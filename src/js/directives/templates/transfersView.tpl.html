@@ -12,7 +12,8 @@
 		</p>
 	</div>
 	<button class="btn btn-danger" ng-show="selectedTransfers.length > 0" ng-click="delete()">Delete selected</button>
-	<button class="btn btn-success" ng-show="selectedTransfers.length > 0" ng-click="startSelected()">Start selected</button>	
+	<button class="btn btn-success" ng-show="selectedTransfers.length > 0" ng-click="startSelected()">Start selected</button>
+	<button class="btn btn-warning" ng-show="failedTransfers.length > 0 && !areTransfersRunning" ng-click="retryFailed()">Retry failed ({{ failedTransfers.length }})</button>
 	<div id="fileTransfersViewBody" class="fileTransfersViewBody">
 		<div class="collapse in" id="fileTransfersTable">
 			<table class="table table-condensed borderless">

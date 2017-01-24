@@ -24,6 +24,7 @@ angular.module('data-transfer')
 			var index = transfersToRun.indexOf(e.file); // Get the index of the file in the transfers array
 			var offset = concurentTransfers - 1; // Offset for the index to get the next transfer
 			if (e.state === 'Succeeded') { // If upload has succeeded
+				transfersToRun.splice(index, 1);
 				$(window).trigger(finished);
 				transfersCompleted++; // Incerment the counter of completed transfers
 				if (transfersCompleted < files.length - offset) { // If there is still queued transfers
@@ -45,6 +46,7 @@ angular.module('data-transfer')
 					autoRetries[index]++;
 				}
 				else {
+					transfersToRun.splice(index, 1);
 					transfersCompleted++;
 					if (configService.getAutoStart() && transfersCompleted + offset < files.length) {
 						service.uploadFile(files[transfersCompleted + offset]); // Run this transfer
@@ -81,9 +83,9 @@ angular.module('data-transfer')
 				$(window).trigger(remove);
 			},
 			start: function (file) {
-				transfersToRun.push(file);
 				autoRetries[files.indexOf(file)] = 0;
 				if (runningTransfers.length < concurentTransfers) {
+					transfersToRun.push(file);
 					runningTransfers.push(file);
 					service.uploadFile(file);
 					run.file = file;
