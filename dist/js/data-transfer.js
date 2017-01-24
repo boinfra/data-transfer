@@ -1,4 +1,4 @@
-/*! data-transfer 23.01.2017 */
+/*! data-transfer 24.01.2017 */
 angular.module('data-transfer', ['ui.bootstrap', 'ngResource', 'templates-dataTransfer']); // Creation of the main module of the framework
 ;
 angular.module('data-transfer')
@@ -267,7 +267,7 @@ angular.module('data-transfer')
 		var files = [];
 		var autoRetries = [];
 		var filePushed = $.Event('filePushed');
-		var service = serviceFactory.getService('upload');
+		var service = serviceFactory.getService('mock');
 		var runningTransfers = [];
 		var concurentTransfers = configService.getConcurentTransfersQty(); // Get the number of transfers that can run at the same time
 		var transfersCompleted = 0; // Number of completed transfers
@@ -277,10 +277,10 @@ angular.module('data-transfer')
 
 		// Event triggered by the service when an upload is finished
 		$(window).on('complete', function (e) {
-			var index = transfers.indexOf(e.file); // Get the index of the file in the transfers array
+			var index = files.indexOf(e.file); // Get the index of the file in the transfers array
 			runningTransfers.splice(index, 1); // Remove succeeded transfer from running transfers array
 			var offset = concurentTransfers - 1; // Offset for the index to get the next transfer
-			if (e.state == 'Succeeded') { // If upload has succeeded
+			if (e.state === 'Succeeded') { // If upload has succeeded
 				transfersCompleted++; // Incerment the counter of completed transfers
 				if (transfersCompleted < files.length - offset) { // If there is still queued transfers
 					if (configService.getAutoStart()) { // If upload should start automatically
@@ -291,9 +291,11 @@ angular.module('data-transfer')
 					}
 				}
 			}
-			else if (e.state == 'Failed') {
+			else if (e.state === 'Failed') {
 				if (autoRetries[index] < configService.getAutoRetriesQty()) {
 					service.uploadFile(e.file);
+					e.state = 'Pending';
+					run.state = e.state;
 					run.file = e.file;
 					$(window).trigger(run);
 					autoRetries[index]++;
