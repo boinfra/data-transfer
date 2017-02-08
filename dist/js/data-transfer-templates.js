@@ -59,7 +59,7 @@ angular.module("js/directives/templates/transfersView.tpl.html", []).run(["$temp
     "							<i class=\"fa\" ng-class=\"{'Failed': 'fa-warning', 'Queued': 'fa-hourglass', 'Succeeded': 'fa-check'} [transfer.status]\"></i>	{{transfer.status}}\n" +
     "						</td>\n" +
     "						<td ng-show=\"transfer.status == 'Pending'\">\n" +
-    "							<uib-progressbar class=\"progress-striped active\" value=\"transfer.prog\" style=\"margin-bottom: 0px\">\n" +
+    "							<uib-progressbar class=\"progress\" value=\"transfer.prog\" max=\"100\" style=\"margin-bottom: 0px\">\n" +
     "							</uib-progressbar>\n" +
     "						</td>\n" +
     "						<td>{{transfer.speed}}</td>\n" +

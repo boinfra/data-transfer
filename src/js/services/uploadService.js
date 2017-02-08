@@ -1,7 +1,7 @@
 angular.module('data-transfer')
 
 	.factory('uploadService', ['$http', '$resource', 'configService', function ($http, $resource, configService) {
-		var url = configService.getApiEndpointURL();
+		var url = configService.getUploadURL();
 		return {
 			uploadFile: function (file) {
 				var uploadFormData = new FormData();

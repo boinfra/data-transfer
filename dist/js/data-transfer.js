@@ -1,4 +1,4 @@
-/*! data-transfer 24.01.2017 */
+/*! data-transfer 08.02.2017 */
 angular.module('data-transfer', ['ui.bootstrap', 'ngResource', 'templates-dataTransfer']); // Creation of the main module of the framework
 ;
 angular.module('data-transfer')
@@ -110,8 +110,11 @@ angular.module('data-transfer')
 				return settings.concurentTransfersQty;
 			},
 			// Function that returns URL of the API endpoint (string)
-			getApiEndpointURL: function () {
-				return settings.apiEndpointURL;
+			getUploadURL: function () {
+				return settings.baseURL + settings.uploadURL;
+			},
+			getFilesURL: function () {
+				return settings.baseURL + settings.filesURL;
 			},
 			// Function that returns the number of transfers that are displayed on the same page in the view (number)
 			getDisplayedTransfersQty: function () {
@@ -262,19 +265,103 @@ angular.module('data-transfer')
 ;
 angular.module('data-transfer')
 
-	.factory('transfersService', ['serviceFactory', 'configService', function (serviceFactory, configService) {
+	.factory('transfersService', ['serviceFactory', 'configService', '$http', function (serviceFactory, configService, $http) {
 
 		var files = [];
 		var autoRetries = [];
 		var filePushed = $.Event('filePushed');
-		var service = serviceFactory.getService('mock');
+		var service = serviceFactory.getService('upload');
 		var transfersToRun = [];
 		var runningTransfers = [];
 		var concurentTransfers = configService.getConcurentTransfersQty(); // Get the number of transfers that can run at the same time
 		var transfersCompleted = 0; // Number of completed transfers
+		var zipResponse = false;
 
 		var run = $.Event('run');
 		run.state = 'Pending';
+
+		//--------------------------------------------------------------------------------------
+		// Request for the storage space
+		window.requestFileSystem = window.requestFileSystem || window.webkitRequestFileSystem;
+		window.storageInfo = window.storageInfo || window.webkitStorageInfo;
+
+		// Request access to the file system
+		var fileSystem = null,         // DOMFileSystem instance
+			fsType = PERSISTENT,       // PERSISTENT vs. TEMPORARY storage
+			fsSize = 10 * 1024 * 1024; // size (bytes) of needed space
+
+		window.storageInfo.requestQuota(fsType, fsSize, function (gb) {
+			window.requestFileSystem(fsType, gb, function (fs) {
+				fileSystem = fs;
+			}, errorHandler);
+		}, errorHandler);
+
+		//------------------------------------------------------------------------------------------
+		// Error handler
+		function errorHandler(e) {
+			var msg = '';
+
+			switch (e.code) {
+				case FileError.QUOTA_EXCEEDED_ERR:
+					msg = 'QUOTA_EXCEEDED_ERR';
+					break;
+				case FileError.NOT_FOUND_ERR:
+					msg = 'NOT_FOUND_ERR';
+					break;
+				case FileError.SECURITY_ERR:
+					msg = 'SECURITY_ERR';
+					break;
+				case FileError.INVALID_MODIFICATION_ERR:
+					msg = 'INVALID_MODIFICATION_ERR';
+					break;
+				case FileError.INVALID_STATE_ERR:
+					msg = 'INVALID_STATE_ERR';
+					break;
+				default:
+					msg = 'Unknown Error';
+					break;
+			}
+
+			console.log('Error: ' + msg);
+		}
+
+		//-------------------------------------------------------
+		// Download file function
+		function downloadFile(url, name, success) {
+			var xhr = new XMLHttpRequest();
+			xhr.open('GET', url, true);
+			xhr.responseType = "blob";
+			xhr.onprogress = function (e) {
+				var percentComplete = e.loaded / e.total * 100;
+				var progress = $.Event('progress');
+				progress.progress = percentComplete;
+				progress.file = name;
+				$(window).trigger(progress);
+			};
+			xhr.onreadystatechange = function () {
+				if (xhr.readyState == 4) {
+					zipResponse = xhr.response.type === 'application/zip';
+					if (success) success(xhr.response);
+					var finished = $.Event('finished');
+					finished.state = 'Succeeded';
+					finished.filename = name;
+					$(window).trigger(finished);
+				}
+			};
+			xhr.send(null);
+		}
+
+		//------------------------------------------------------
+		// Save file function
+		function saveFile(data, path) {
+			if (!fileSystem) return;
+
+			fileSystem.root.getFile(path, { create: true }, function (fileEntry) {
+				fileEntry.createWriter(function (writer) {
+					writer.write(data);
+				}, errorHandler);
+			}, errorHandler);
+		}
 
 		// Event triggered by the service when an upload is finished
 		$(window).on('complete', function (e) {
@@ -356,15 +443,22 @@ angular.module('data-transfer')
 			},
 			getRunningTransfers: function () {
 				return runningTransfers;
+			},
+			download: function (url, name) {
+				var dl = $.Event('download');
+				dl.filename = name;
+				$(window).trigger(dl);
+				downloadFile(url, name, function (blob) {
+					saveAs(blob, zipResponse ? name + '.zip' : name);
+				});
 			}
 		};
-
 	}]);
 ;
 angular.module('data-transfer')
 
 	.factory('uploadService', ['$http', '$resource', 'configService', function ($http, $resource, configService) {
-		var url = configService.getApiEndpointURL();
+		var url = configService.getUploadURL();
 		return {
 			uploadFile: function (file) {
 				var uploadFormData = new FormData();
@@ -512,6 +606,13 @@ angular.module('data-transfer')
 		var failedTransfersRetried = 0;
 		$scope.areTransfersRunning = false;
 
+		$(window).on('download', function (e) {
+			filesVM.push({ name: e.filename, displaySize: e.size, transferType: 'Download', status: 'Pending', prog: 0 });
+			$scope.runningTransfers.push({ name: e.filename, displaySize: e.size, transferType: 'Download', status: 'Pending' });
+			$scope.definePagination();
+			$scope.changePage(currentPage);
+		});
+
 		$(window).on('filePushed', function (e) {
 			files.push(e.file);
 			$scope.runningTransfers = transfersService.getRunningTransfers();
@@ -551,14 +652,27 @@ angular.module('data-transfer')
 		});
 
 		$(window).on('progress', function (e) {
-			var index = files.indexOf(e.file); // Get the index of the file in the transfers array
-			filesVM[index].elapsedTime = e.elapsedTime;
-			filesVM[index].remainingTime = e.remainingTime;
+			var index = filesVM.indexOf(filesVM.filter(function (f) {
+				return f.name === e.file;
+			})[0]); // Get the index of the file in the transfers array
+			filesVM[index].prog = e.progress;
+			//filesVM[index].elapsedTime = e.elapsedTime;
+			//filesVM[index].remainingTime = e.remainingTime;
+			$scope.definePagination();
+			$scope.changePage(currentPage);
 			$scope.$apply();
 		});
 
 		$(window).on('finished', function (e) {
-			var index = files.indexOf(e.file); // Get the index of the file in the transfers array
+			var index;
+			if (e.file !== undefined) {
+				index = files.indexOf(e.file); // Get the index of the file in the transfers array
+			}
+			else if (e.filename !== undefined) {
+				index = filesVM.indexOf(filesVM.filter(function (f) {
+					return f.name === e.filename;
+				})[0]);
+			}
 			var offset = 0;
 			if ($scope.selectedTransfers.length > 0) {
 				if ($scope.selectedTransfers.indexOf(filesVM[index]) > -1) {
@@ -579,13 +693,15 @@ angular.module('data-transfer')
 				}
 			}
 			filesVM[index].status = e.state;
+			$scope.definePagination();
+			$scope.changePage(currentPage);
 			$scope.failedTransfers = filesVM.filter(function (t) {
 				return t.status === 'Failed';
 			});
 			$scope.areTransfersRunning = filesVM.filter(function (t) {
 				return t.status === 'Pending';
 			}).length > 0;
-			if (e.service === 'mock') {
+			if (e.service === 'mock' || filesVM[index].transferType === 'Download') {
 				$scope.$apply();
 			}
 		});

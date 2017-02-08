@@ -26,8 +26,11 @@ angular.module('data-transfer')
 				return settings.concurentTransfersQty;
 			},
 			// Function that returns URL of the API endpoint (string)
-			getApiEndpointURL: function () {
-				return settings.apiEndpointURL;
+			getUploadURL: function () {
+				return settings.baseURL + settings.uploadURL;
+			},
+			getFilesURL: function () {
+				return settings.baseURL + settings.filesURL;
 			},
 			// Function that returns the number of transfers that are displayed on the same page in the view (number)
 			getDisplayedTransfersQty: function () {

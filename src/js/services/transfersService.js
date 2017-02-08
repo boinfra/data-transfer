@@ -1,18 +1,102 @@
 angular.module('data-transfer')
 
-	.factory('transfersService', ['serviceFactory', 'configService', function (serviceFactory, configService) {
+	.factory('transfersService', ['serviceFactory', 'configService', '$http', function (serviceFactory, configService, $http) {
 
 		var files = [];
 		var autoRetries = [];
 		var filePushed = $.Event('filePushed');
-		var service = serviceFactory.getService('mock');
+		var service = serviceFactory.getService('upload');
 		var transfersToRun = [];
 		var runningTransfers = [];
 		var concurentTransfers = configService.getConcurentTransfersQty(); // Get the number of transfers that can run at the same time
 		var transfersCompleted = 0; // Number of completed transfers
+		var zipResponse = false;
 
 		var run = $.Event('run');
 		run.state = 'Pending';
+
+		//--------------------------------------------------------------------------------------
+		// Request for the storage space
+		window.requestFileSystem = window.requestFileSystem || window.webkitRequestFileSystem;
+		window.storageInfo = window.storageInfo || window.webkitStorageInfo;
+
+		// Request access to the file system
+		var fileSystem = null,         // DOMFileSystem instance
+			fsType = PERSISTENT,       // PERSISTENT vs. TEMPORARY storage
+			fsSize = 10 * 1024 * 1024; // size (bytes) of needed space
+
+		window.storageInfo.requestQuota(fsType, fsSize, function (gb) {
+			window.requestFileSystem(fsType, gb, function (fs) {
+				fileSystem = fs;
+			}, errorHandler);
+		}, errorHandler);
+
+		//------------------------------------------------------------------------------------------
+		// Error handler
+		function errorHandler(e) {
+			var msg = '';
+
+			switch (e.code) {
+				case FileError.QUOTA_EXCEEDED_ERR:
+					msg = 'QUOTA_EXCEEDED_ERR';
+					break;
+				case FileError.NOT_FOUND_ERR:
+					msg = 'NOT_FOUND_ERR';
+					break;
+				case FileError.SECURITY_ERR:
+					msg = 'SECURITY_ERR';
+					break;
+				case FileError.INVALID_MODIFICATION_ERR:
+					msg = 'INVALID_MODIFICATION_ERR';
+					break;
+				case FileError.INVALID_STATE_ERR:
+					msg = 'INVALID_STATE_ERR';
+					break;
+				default:
+					msg = 'Unknown Error';
+					break;
+			}
+
+			console.log('Error: ' + msg);
+		}
+
+		//-------------------------------------------------------
+		// Download file function
+		function downloadFile(url, name, success) {
+			var xhr = new XMLHttpRequest();
+			xhr.open('GET', url, true);
+			xhr.responseType = "blob";
+			xhr.onprogress = function (e) {
+				var percentComplete = e.loaded / e.total * 100;
+				var progress = $.Event('progress');
+				progress.progress = percentComplete;
+				progress.file = name;
+				$(window).trigger(progress);
+			};
+			xhr.onreadystatechange = function () {
+				if (xhr.readyState == 4) {
+					zipResponse = xhr.response.type === 'application/zip';
+					if (success) success(xhr.response);
+					var finished = $.Event('finished');
+					finished.state = 'Succeeded';
+					finished.filename = name;
+					$(window).trigger(finished);
+				}
+			};
+			xhr.send(null);
+		}
+
+		//------------------------------------------------------
+		// Save file function
+		function saveFile(data, path) {
+			if (!fileSystem) return;
+
+			fileSystem.root.getFile(path, { create: true }, function (fileEntry) {
+				fileEntry.createWriter(function (writer) {
+					writer.write(data);
+				}, errorHandler);
+			}, errorHandler);
+		}
 
 		// Event triggered by the service when an upload is finished
 		$(window).on('complete', function (e) {
@@ -94,7 +178,14 @@ angular.module('data-transfer')
 			},
 			getRunningTransfers: function () {
 				return runningTransfers;
+			},
+			download: function (url, name) {
+				var dl = $.Event('download');
+				dl.filename = name;
+				$(window).trigger(dl);
+				downloadFile(url, name, function (blob) {
+					saveAs(blob, zipResponse ? name + '.zip' : name);
+				});
 			}
 		};
-
 	}]);

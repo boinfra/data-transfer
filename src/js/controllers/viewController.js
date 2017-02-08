@@ -14,6 +14,13 @@ angular.module('data-transfer')
 		var failedTransfersRetried = 0;
 		$scope.areTransfersRunning = false;
 
+		$(window).on('download', function (e) {
+			filesVM.push({ name: e.filename, displaySize: e.size, transferType: 'Download', status: 'Pending', prog: 0 });
+			$scope.runningTransfers.push({ name: e.filename, displaySize: e.size, transferType: 'Download', status: 'Pending' });
+			$scope.definePagination();
+			$scope.changePage(currentPage);
+		});
+
 		$(window).on('filePushed', function (e) {
 			files.push(e.file);
 			$scope.runningTransfers = transfersService.getRunningTransfers();
@@ -53,14 +60,27 @@ angular.module('data-transfer')
 		});
 
 		$(window).on('progress', function (e) {
-			var index = files.indexOf(e.file); // Get the index of the file in the transfers array
-			filesVM[index].elapsedTime = e.elapsedTime;
-			filesVM[index].remainingTime = e.remainingTime;
+			var index = filesVM.indexOf(filesVM.filter(function (f) {
+				return f.name === e.file;
+			})[0]); // Get the index of the file in the transfers array
+			filesVM[index].prog = e.progress;
+			//filesVM[index].elapsedTime = e.elapsedTime;
+			//filesVM[index].remainingTime = e.remainingTime;
+			$scope.definePagination();
+			$scope.changePage(currentPage);
 			$scope.$apply();
 		});
 
 		$(window).on('finished', function (e) {
-			var index = files.indexOf(e.file); // Get the index of the file in the transfers array
+			var index;
+			if (e.file !== undefined) {
+				index = files.indexOf(e.file); // Get the index of the file in the transfers array
+			}
+			else if (e.filename !== undefined) {
+				index = filesVM.indexOf(filesVM.filter(function (f) {
+					return f.name === e.filename;
+				})[0]);
+			}
 			var offset = 0;
 			if ($scope.selectedTransfers.length > 0) {
 				if ($scope.selectedTransfers.indexOf(filesVM[index]) > -1) {
@@ -81,13 +101,15 @@ angular.module('data-transfer')
 				}
 			}
 			filesVM[index].status = e.state;
+			$scope.definePagination();
+			$scope.changePage(currentPage);
 			$scope.failedTransfers = filesVM.filter(function (t) {
 				return t.status === 'Failed';
 			});
 			$scope.areTransfersRunning = filesVM.filter(function (t) {
 				return t.status === 'Pending';
 			}).length > 0;
-			if (e.service === 'mock') {
+			if (e.service === 'mock' || filesVM[index].transferType === 'Download') {
 				$scope.$apply();
 			}
 		});

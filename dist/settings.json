@@ -3,6 +3,8 @@
 	"autoRetriesQty": 1,
 	"_comment": "Set autoRetriesQty to 0 if you don't want failed uploads to restart automatically",
 	"concurentTransfersQty": 3, 
-	"apiEndpointURL": "/api/upload",
+	"baseURL": "http://localhost:8080/api/",
+	"uploadURL": "upload",
+	"filesURL": "files",
 	"displayedTransfersQty": 15
 }
