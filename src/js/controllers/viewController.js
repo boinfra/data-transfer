@@ -23,10 +23,13 @@ angular.module('data-transfer')
 				prog: 0,
 				selected: false
 			};
+			console.debug(newFileVM);
 			var index = filesVM.indexOf(filesVM.filter(function (f) {
 				return f.downloadUrl === e.downloadUrl;
 			})[0]);
-			filesVM.splice(index, 1);
+			if (index > -1) {
+				filesVM.splice(index, 1);
+			}	
 			filesVM.push(newFileVM);
 			$scope.runningTransfers.push(newFileVM);
 			$scope.definePagination();

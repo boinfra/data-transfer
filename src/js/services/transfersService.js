@@ -84,14 +84,17 @@ angular.module('data-transfer')
 			};
 			xhr.onloadend = function () {
 				if (xhr.readyState == 4 && !aborted) {
+					var finished = $.Event('finished');
+					finished.filename = name;
 					if (success) {
 						zipResponse = xhr.response.type === 'application/zip';
 						success(xhr.response);
-						var finished = $.Event('finished');
 						finished.state = 'Succeeded';
-						finished.filename = name;
-						$(window).trigger(finished);
 					}
+					else {
+						finished.state = 'Failed';
+					}
+					$(window).trigger(finished);
 				}
 			};
 			xhrArray.push(xhr);

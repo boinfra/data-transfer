@@ -349,14 +349,17 @@ angular.module('data-transfer')
 			};
 			xhr.onloadend = function () {
 				if (xhr.readyState == 4 && !aborted) {
+					var finished = $.Event('finished');
+					finished.filename = name;
 					if (success) {
 						zipResponse = xhr.response.type === 'application/zip';
 						success(xhr.response);
-						var finished = $.Event('finished');
 						finished.state = 'Succeeded';
-						finished.filename = name;
-						$(window).trigger(finished);
 					}
+					else {
+						finished.state = 'Failed';
+					}
+					$(window).trigger(finished);
 				}
 			};
 			xhrArray.push(xhr);
@@ -634,10 +637,13 @@ angular.module('data-transfer')
 				prog: 0,
 				selected: false
 			};
+			console.debug(newFileVM);
 			var index = filesVM.indexOf(filesVM.filter(function (f) {
 				return f.downloadUrl === e.downloadUrl;
 			})[0]);
-			filesVM.splice(index, 1);
+			if (index > -1) {
+				filesVM.splice(index, 1);
+			}	
 			filesVM.push(newFileVM);
 			$scope.runningTransfers.push(newFileVM);
 			$scope.definePagination();
