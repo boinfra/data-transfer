@@ -1,4 +1,4 @@
-/*! data-transfer 08.02.2017 */
+/*! data-transfer 09.02.2017 */
 angular.module('data-transfer', ['ui.bootstrap', 'ngResource', 'templates-dataTransfer']); // Creation of the main module of the framework
 ;
 angular.module('data-transfer')
@@ -329,12 +329,19 @@ angular.module('data-transfer')
 		// Download file function
 		function downloadFile(url, name, success) {
 			var xhr = new XMLHttpRequest();
+			var ms = 0;
 			xhr.open('GET', url, true);
 			xhr.responseType = "blob";
+			window.setInterval(function () {
+				ms += 100;
+			}, 100);
 			xhr.onprogress = function (e) {
 				var percentComplete = e.loaded / e.total * 100;
 				var progress = $.Event('progress');
 				progress.progress = percentComplete;
+				progress.loaded = e.loaded;
+				progress.elapsedTime = ms;
+				progress.size = e.total;
 				progress.file = name;
 				$(window).trigger(progress);
 			};
@@ -446,7 +453,7 @@ angular.module('data-transfer')
 			},
 			download: function (url, name) {
 				var dl = $.Event('download');
-				dl.filename = name;
+				dl.fileName = name;
 				$(window).trigger(dl);
 				downloadFile(url, name, function (blob) {
 					saveAs(blob, zipResponse ? name + '.zip' : name);
@@ -607,8 +614,17 @@ angular.module('data-transfer')
 		$scope.areTransfersRunning = false;
 
 		$(window).on('download', function (e) {
-			filesVM.push({ name: e.filename, displaySize: e.size, transferType: 'Download', status: 'Pending', prog: 0 });
-			$scope.runningTransfers.push({ name: e.filename, displaySize: e.size, transferType: 'Download', status: 'Pending' });
+			console.debug(e);
+			var newFileVM = {
+				name: e.fileName,
+				transferType: 'Download',
+				status: 'Pending',
+				prog: 0,
+				selected: false
+			};
+			filesVM.push(newFileVM);
+			console.debug(newFileVM);
+			$scope.runningTransfers.push(newFileVM);
 			$scope.definePagination();
 			$scope.changePage(currentPage);
 		});
@@ -640,7 +656,6 @@ angular.module('data-transfer')
 				selected: false
 			};
 			filesVM.push(newFileVM);
-			$scope.displayedTransfers.push(newFileVM);
 			$scope.definePagination();
 			$scope.changePage(currentPage);
 			$scope.$apply();
@@ -655,9 +670,22 @@ angular.module('data-transfer')
 			var index = filesVM.indexOf(filesVM.filter(function (f) {
 				return f.name === e.file;
 			})[0]); // Get the index of the file in the transfers array
-			filesVM[index].prog = e.progress;
-			//filesVM[index].elapsedTime = e.elapsedTime;
-			//filesVM[index].remainingTime = e.remainingTime;
+			console.debug(e);
+			filesVM[index].prog = Number((e.progress).toFixed(2));
+			var progressRemaining = 100 - filesVM[index].prog;
+			filesVM[index].remainingTime = ((e.elapsedTime / e.progress) * progressRemaining) / 1000;
+			filesVM[index].elapsedTime = e.elapsedTime / 1000;
+			var loaded = e.loaded;
+			filesVM[index].speed = (e.loaded / e.elapsedTime) / 1024;
+			filesVM[index].displaySize = function () {
+				var cptDiv = 0;
+				var size = e.size;
+				while (size > 1024) {
+					size /= 1024;
+					cptDiv++;
+				}
+				return (Number((size).toFixed(0))) + (cptDiv == 2 ? ' MB' : cptDiv == 1 ? ' KB' : ' B');
+			};
 			$scope.definePagination();
 			$scope.changePage(currentPage);
 			$scope.$apply();

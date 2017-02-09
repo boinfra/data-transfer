@@ -64,12 +64,19 @@ angular.module('data-transfer')
 		// Download file function
 		function downloadFile(url, name, success) {
 			var xhr = new XMLHttpRequest();
+			var ms = 0;
 			xhr.open('GET', url, true);
 			xhr.responseType = "blob";
+			window.setInterval(function () {
+				ms += 100;
+			}, 100);
 			xhr.onprogress = function (e) {
 				var percentComplete = e.loaded / e.total * 100;
 				var progress = $.Event('progress');
 				progress.progress = percentComplete;
+				progress.loaded = e.loaded;
+				progress.elapsedTime = ms;
+				progress.size = e.total;
 				progress.file = name;
 				$(window).trigger(progress);
 			};
@@ -181,7 +188,7 @@ angular.module('data-transfer')
 			},
 			download: function (url, name) {
 				var dl = $.Event('download');
-				dl.filename = name;
+				dl.fileName = name;
 				$(window).trigger(dl);
 				downloadFile(url, name, function (blob) {
 					saveAs(blob, zipResponse ? name + '.zip' : name);

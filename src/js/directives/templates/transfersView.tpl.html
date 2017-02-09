@@ -48,9 +48,9 @@
 							<uib-progressbar class="progress" value="transfer.prog" max="100" style="margin-bottom: 0px">
 							</uib-progressbar>
 						</td>
-						<td>{{transfer.speed}}</td>
-						<td>{{transfer.elapsedTime}}</td>
-						<td>{{transfer.remainingTime}}</td>
+						<td>{{transfer.speed | number:2}} MB/s </td>
+						<td>{{transfer.elapsedTime | number:1}} s</td>
+						<td>{{transfer.remainingTime | number:1}} s</td>
 						<td>
 							<i class="fa fa-play fa-lg" ng-click="start(transfer)" ng-show="transfer.status == 'Paused' || transfer.status == 'Queued' || transfer.status == 'Failed'"></i>
 						</td>

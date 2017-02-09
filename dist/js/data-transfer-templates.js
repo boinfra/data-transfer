@@ -62,9 +62,9 @@ angular.module("js/directives/templates/transfersView.tpl.html", []).run(["$temp
     "							<uib-progressbar class=\"progress\" value=\"transfer.prog\" max=\"100\" style=\"margin-bottom: 0px\">\n" +
     "							</uib-progressbar>\n" +
     "						</td>\n" +
-    "						<td>{{transfer.speed}}</td>\n" +
-    "						<td>{{transfer.elapsedTime}}</td>\n" +
-    "						<td>{{transfer.remainingTime}}</td>\n" +
+    "						<td>{{transfer.speed | number:2}} MB/s </td>\n" +
+    "						<td>{{transfer.elapsedTime | number:1}} s</td>\n" +
+    "						<td>{{transfer.remainingTime | number:1}} s</td>\n" +
     "						<td>\n" +
     "							<i class=\"fa fa-play fa-lg\" ng-click=\"start(transfer)\" ng-show=\"transfer.status == 'Paused' || transfer.status == 'Queued' || transfer.status == 'Failed'\"></i>\n" +
     "						</td>\n" +
