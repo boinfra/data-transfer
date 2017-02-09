@@ -67,6 +67,7 @@ angular.module("js/directives/templates/transfersView.tpl.html", []).run(["$temp
     "						<td>{{transfer.remainingTime | number:1}} s</td>\n" +
     "						<td>\n" +
     "							<i class=\"fa fa-play fa-lg\" ng-click=\"start(transfer)\" ng-show=\"transfer.status == 'Paused' || transfer.status == 'Queued' || transfer.status == 'Failed'\"></i>\n" +
+    "							<i class=\"fa fa-stop fa-lg\" ng-click=\"stop(transfer)\" ng-show=\"transfer.status == 'Pending'\"></i>\n" +
     "						</td>\n" +
     "					</tr>\n" +
     "				</tbody>\n" +

@@ -15,16 +15,19 @@ angular.module('data-transfer')
 		$scope.areTransfersRunning = false;
 
 		$(window).on('download', function (e) {
-			console.debug(e);
 			var newFileVM = {
+				downloadUrl: e.downloadUrl,
 				name: e.fileName,
 				transferType: 'Download',
 				status: 'Pending',
 				prog: 0,
 				selected: false
 			};
+			var index = filesVM.indexOf(filesVM.filter(function (f) {
+				return f.downloadUrl === e.downloadUrl;
+			})[0]);
+			filesVM.splice(index, 1);
 			filesVM.push(newFileVM);
-			console.debug(newFileVM);
 			$scope.runningTransfers.push(newFileVM);
 			$scope.definePagination();
 			$scope.changePage(currentPage);
@@ -71,7 +74,6 @@ angular.module('data-transfer')
 			var index = filesVM.indexOf(filesVM.filter(function (f) {
 				return f.name === e.file;
 			})[0]); // Get the index of the file in the transfers array
-			console.debug(e);
 			filesVM[index].prog = Number((e.progress).toFixed(2));
 			var progressRemaining = 100 - filesVM[index].prog;
 			filesVM[index].remainingTime = ((e.elapsedTime / e.progress) * progressRemaining) / 1000;
@@ -87,6 +89,17 @@ angular.module('data-transfer')
 				}
 				return (Number((size).toFixed(0))) + (cptDiv == 2 ? ' MB' : cptDiv == 1 ? ' KB' : ' B');
 			};
+			$scope.definePagination();
+			$scope.changePage(currentPage);
+			$scope.$apply();
+		});
+
+		$(window).on('stopped', function (e) {
+			filesVM[filesVM.indexOf(e.trans)].status = 'Queued';
+			filesVM[filesVM.indexOf(e.trans)].prog = 0;
+			filesVM[filesVM.indexOf(e.trans)].elapsedTime = 0;
+			filesVM[filesVM.indexOf(e.trans)].remainingTime = 0;
+			filesVM[filesVM.indexOf(e.trans)].speed = 0;
 			$scope.definePagination();
 			$scope.changePage(currentPage);
 			$scope.$apply();
@@ -181,7 +194,19 @@ angular.module('data-transfer')
 
 		$scope.start = function (trans) {
 			var index = filesVM.indexOf(trans);
-			transfersService.start(files[index]);
+			if (trans.transferType === 'Upload') {
+				transfersService.start(files[index]);
+			}
+			else if (trans.transferType === 'Download') {
+				transfersService.download(trans.downloadUrl, trans.name);
+			}
+		};
+
+		$scope.stop = function (trans) {
+			var index = filesVM.indexOf((filesVM.filter(function (f) {
+				return f === trans;
+			}))[0]);
+			transfersService.stop(trans, index);
 		};
 
 		$scope.startSelected = function () {

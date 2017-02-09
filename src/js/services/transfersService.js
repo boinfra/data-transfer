@@ -11,6 +11,8 @@ angular.module('data-transfer')
 		var concurentTransfers = configService.getConcurentTransfersQty(); // Get the number of transfers that can run at the same time
 		var transfersCompleted = 0; // Number of completed transfers
 		var zipResponse = false;
+		var xhrArray = [];
+		var aborted = false;
 
 		var run = $.Event('run');
 		run.state = 'Pending';
@@ -80,16 +82,19 @@ angular.module('data-transfer')
 				progress.file = name;
 				$(window).trigger(progress);
 			};
-			xhr.onreadystatechange = function () {
-				if (xhr.readyState == 4) {
-					zipResponse = xhr.response.type === 'application/zip';
-					if (success) success(xhr.response);
-					var finished = $.Event('finished');
-					finished.state = 'Succeeded';
-					finished.filename = name;
-					$(window).trigger(finished);
+			xhr.onloadend = function () {
+				if (xhr.readyState == 4 && !aborted) {
+					if (success) {
+						zipResponse = xhr.response.type === 'application/zip';
+						success(xhr.response);
+						var finished = $.Event('finished');
+						finished.state = 'Succeeded';
+						finished.filename = name;
+						$(window).trigger(finished);
+					}
 				}
 			};
+			xhrArray.push(xhr);
 			xhr.send(null);
 		}
 
@@ -189,10 +194,17 @@ angular.module('data-transfer')
 			download: function (url, name) {
 				var dl = $.Event('download');
 				dl.fileName = name;
+				dl.downloadUrl = url;
 				$(window).trigger(dl);
 				downloadFile(url, name, function (blob) {
 					saveAs(blob, zipResponse ? name + '.zip' : name);
 				});
+			},
+			stop: function (trans, index) {
+				xhrArray[index].abort();
+				var stopped = $.Event('stopped');
+				stopped.trans = trans;
+				$(window).trigger(stopped);
 			}
 		};
 	}]);

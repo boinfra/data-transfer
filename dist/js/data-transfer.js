@@ -276,6 +276,8 @@ angular.module('data-transfer')
 		var concurentTransfers = configService.getConcurentTransfersQty(); // Get the number of transfers that can run at the same time
 		var transfersCompleted = 0; // Number of completed transfers
 		var zipResponse = false;
+		var xhrArray = [];
+		var aborted = false;
 
 		var run = $.Event('run');
 		run.state = 'Pending';
@@ -345,16 +347,19 @@ angular.module('data-transfer')
 				progress.file = name;
 				$(window).trigger(progress);
 			};
-			xhr.onreadystatechange = function () {
-				if (xhr.readyState == 4) {
-					zipResponse = xhr.response.type === 'application/zip';
-					if (success) success(xhr.response);
-					var finished = $.Event('finished');
-					finished.state = 'Succeeded';
-					finished.filename = name;
-					$(window).trigger(finished);
+			xhr.onloadend = function () {
+				if (xhr.readyState == 4 && !aborted) {
+					if (success) {
+						zipResponse = xhr.response.type === 'application/zip';
+						success(xhr.response);
+						var finished = $.Event('finished');
+						finished.state = 'Succeeded';
+						finished.filename = name;
+						$(window).trigger(finished);
+					}
 				}
 			};
+			xhrArray.push(xhr);
 			xhr.send(null);
 		}
 
@@ -454,10 +459,17 @@ angular.module('data-transfer')
 			download: function (url, name) {
 				var dl = $.Event('download');
 				dl.fileName = name;
+				dl.downloadUrl = url;
 				$(window).trigger(dl);
 				downloadFile(url, name, function (blob) {
 					saveAs(blob, zipResponse ? name + '.zip' : name);
 				});
+			},
+			stop: function (trans, index) {
+				xhrArray[index].abort();
+				var stopped = $.Event('stopped');
+				stopped.trans = trans;
+				$(window).trigger(stopped);
 			}
 		};
 	}]);
@@ -614,16 +626,19 @@ angular.module('data-transfer')
 		$scope.areTransfersRunning = false;
 
 		$(window).on('download', function (e) {
-			console.debug(e);
 			var newFileVM = {
+				downloadUrl: e.downloadUrl,
 				name: e.fileName,
 				transferType: 'Download',
 				status: 'Pending',
 				prog: 0,
 				selected: false
 			};
+			var index = filesVM.indexOf(filesVM.filter(function (f) {
+				return f.downloadUrl === e.downloadUrl;
+			})[0]);
+			filesVM.splice(index, 1);
 			filesVM.push(newFileVM);
-			console.debug(newFileVM);
 			$scope.runningTransfers.push(newFileVM);
 			$scope.definePagination();
 			$scope.changePage(currentPage);
@@ -670,7 +685,6 @@ angular.module('data-transfer')
 			var index = filesVM.indexOf(filesVM.filter(function (f) {
 				return f.name === e.file;
 			})[0]); // Get the index of the file in the transfers array
-			console.debug(e);
 			filesVM[index].prog = Number((e.progress).toFixed(2));
 			var progressRemaining = 100 - filesVM[index].prog;
 			filesVM[index].remainingTime = ((e.elapsedTime / e.progress) * progressRemaining) / 1000;
@@ -686,6 +700,17 @@ angular.module('data-transfer')
 				}
 				return (Number((size).toFixed(0))) + (cptDiv == 2 ? ' MB' : cptDiv == 1 ? ' KB' : ' B');
 			};
+			$scope.definePagination();
+			$scope.changePage(currentPage);
+			$scope.$apply();
+		});
+
+		$(window).on('stopped', function (e) {
+			filesVM[filesVM.indexOf(e.trans)].status = 'Queued';
+			filesVM[filesVM.indexOf(e.trans)].prog = 0;
+			filesVM[filesVM.indexOf(e.trans)].elapsedTime = 0;
+			filesVM[filesVM.indexOf(e.trans)].remainingTime = 0;
+			filesVM[filesVM.indexOf(e.trans)].speed = 0;
 			$scope.definePagination();
 			$scope.changePage(currentPage);
 			$scope.$apply();
@@ -780,7 +805,19 @@ angular.module('data-transfer')
 
 		$scope.start = function (trans) {
 			var index = filesVM.indexOf(trans);
-			transfersService.start(files[index]);
+			if (trans.transferType === 'Upload') {
+				transfersService.start(files[index]);
+			}
+			else if (trans.transferType === 'Download') {
+				transfersService.download(trans.downloadUrl, trans.name);
+			}
+		};
+
+		$scope.stop = function (trans) {
+			var index = filesVM.indexOf((filesVM.filter(function (f) {
+				return f === trans;
+			}))[0]);
+			transfersService.stop(trans, index);
 		};
 
 		$scope.startSelected = function () {
