@@ -19,7 +19,8 @@
 			<table class="table table-condensed borderless">
 				<thead>
 					<tr>
-						<th><input type="checkbox" ng-checked="(selectedTransfers.length === displayedTransfers.length) && displayedTransfers.length > 0" ng-click="toggleAll()"/></th>
+						<th><input type="checkbox" ng-checked="(selectedTransfers.length === displayedTransfers.length) && displayedTransfers.length > 0"
+								ng-click="toggleAll()" /></th>
 						<th>Name</th>
 						<th>Size</th>
 						<th>Transfer type</th>
@@ -31,10 +32,9 @@
 					</tr>
 				</thead>
 				<tbody id="tableBody" class="tableBody">
-					<tr ng-repeat="transfer in displayedTransfers" on-finish-render="ngRepeatFinished" 
-						ng-show="transfer.transferType=='Upload' || page!='upload'"
+					<tr ng-repeat="transfer in displayedTransfers" on-finish-render="ngRepeatFinished" ng-show="transfer.transferType=='Upload' || page!='upload'"
 						ng-class="{'Failed': 'danger', 'Succeeded': 'success'} [transfer.status]">
-						<td><input type="checkbox" ng-checked="transfer.selected" ng-click="toggle(transfer)"/></td>
+						<td><input type="checkbox" ng-checked="transfer.selected" ng-click="toggle(transfer)" /></td>
 						<td>{{transfer.name}}</td>
 						<td>{{transfer.displaySize()}}</td>
 						<td>
@@ -42,24 +42,24 @@
 							[transfer.transferType=='Upload']"></i> {{transfer.transferType}}
 						</td>
 						<td ng-hide="transfer.status == 'Pending'">
-							<i class="fa" ng-class="{'Failed': 'fa-warning', 'Queued': 'fa-hourglass', 'Succeeded': 'fa-check'} [transfer.status]"></i>	{{transfer.status}}
+							<i class="fa" ng-class="{'Failed': 'fa-warning', 'Queued': 'fa-hourglass', 'Succeeded': 'fa-check'} [transfer.status]"></i>							{{transfer.status}}
 						</td>
 						<td ng-show="transfer.status == 'Pending'">
 							<uib-progressbar class="progress" value="transfer.prog" max="100" style="margin-bottom: 0px">
 							</uib-progressbar>
 						</td>
-						<td>{{transfer.speed | number:2}} MB/s </td>
+						<td>{{transfer.speed | number:2}} MB/s</td>
 						<td>{{transfer.elapsedTime | number:1}} s</td>
 						<td>{{transfer.remainingTime | number:1}} s</td>
 						<td>
 							<i class="fa fa-play fa-lg" ng-click="start(transfer)" ng-show="transfer.status == 'Paused' || transfer.status == 'Queued' || transfer.status == 'Failed'"></i>
-							<i class="fa fa-stop fa-lg" ng-click="stop(transfer)" ng-show="transfer.status == 'Pending'"></i>
+							<i class="fa fa-stop fa-lg" ng-click="stop(transfer, $index)" ng-show="transfer.status == 'Pending'"></i>
 						</td>
-					</tr>
+						</tr>
 				</tbody>
 			</table>
 			<hr/>
 			<div id="page-selection" class="pagination"></div>
-			</div>
-			</div>
 		</div>
+	</div>
+</div>

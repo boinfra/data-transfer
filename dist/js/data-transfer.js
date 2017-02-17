@@ -1,926 +1,524 @@
-/*! data-transfer 09.02.2017 */
-angular.module('data-transfer', ['ui.bootstrap', 'ngResource', 'templates-dataTransfer']); // Creation of the main module of the framework
-;
-angular.module('data-transfer')
-
-	.factory('browserDetectionService', function () {
-		return {
-			getBrowserInfo: function () {
-				// Code found at http://www.javascripter.net/faq/browsern.htm
-				var nVer = navigator.appVersion;
-				var nAgt = navigator.userAgent;
-				var browserName = navigator.appName;
-				var fullVersion = '' + parseFloat(navigator.appVersion);
-				var majorVersion = parseInt(navigator.appVersion, 10);
-				var nameOffset, verOffset, ix;
-
-				// In Opera 15+, the true version is after "OPR/" 
-				if ((verOffset = nAgt.indexOf("OPR/")) != -1) {
-					browserName = "Opera";
-					fullVersion = nAgt.substring(verOffset + 4);
-				}
-				// In older Opera, the true version is after "Opera" or after "Version"
-				else if ((verOffset = nAgt.indexOf("Opera")) != -1) {
-					browserName = "Opera";
-					fullVersion = nAgt.substring(verOffset + 6);
-					if ((verOffset = nAgt.indexOf("Version")) != -1)
-						fullVersion = nAgt.substring(verOffset + 8);
-				}
-				// In MSIE, the true version is after "MSIE" in userAgent
-				else if ((verOffset = nAgt.indexOf("MSIE")) != -1) {
-					browserName = "Microsoft Internet Explorer";
-					fullVersion = nAgt.substring(verOffset + 5);
-				}
-				// In Chrome, the true version is after "Chrome" 
-				else if ((verOffset = nAgt.indexOf("Chrome")) != -1) {
-					browserName = "Chrome";
-					fullVersion = nAgt.substring(verOffset + 7);
-				}
-				// In Safari, the true version is after "Safari" or after "Version" 
-				else if ((verOffset = nAgt.indexOf("Safari")) != -1) {
-					browserName = "Safari";
-					fullVersion = nAgt.substring(verOffset + 7);
-					if ((verOffset = nAgt.indexOf("Version")) != -1)
-						fullVersion = nAgt.substring(verOffset + 8);
-				}
-				// In Firefox, the true version is after "Firefox" 
-				else if ((verOffset = nAgt.indexOf("Firefox")) != -1) {
-					browserName = "Firefox";
-					fullVersion = nAgt.substring(verOffset + 8);
-				}
-				// In most other browsers, "name/version" is at the end of userAgent 
-				else if ((nameOffset = nAgt.lastIndexOf(' ') + 1) <
-					(verOffset = nAgt.lastIndexOf('/'))) {
-					browserName = nAgt.substring(nameOffset, verOffset);
-					fullVersion = nAgt.substring(verOffset + 1);
-					if (browserName.toLowerCase() == browserName.toUpperCase()) {
-						browserName = navigator.appName;
-					}
-				}
-				// trim the fullVersion string at semicolon/space if present
-				if ((ix = fullVersion.indexOf(";")) != -1)
-					fullVersion = fullVersion.substring(0, ix);
-				if ((ix = fullVersion.indexOf(" ")) != -1)
-					fullVersion = fullVersion.substring(0, ix);
-
-				majorVersion = parseInt('' + fullVersion, 10);
-				if (isNaN(majorVersion)) {
-					fullVersion = '' + parseFloat(navigator.appVersion);
-					majorVersion = parseInt(navigator.appVersion, 10);
-				}
-				// End of copied code
-				
-				var webkit = detectWebKit();
-
-				return {
-					hasWebkit: webkit.iswebkit,
-					webkitVersion: this.hasWebkit ? parseFloat(webkit.version) : null,
-					name: browserName,
-					version: majorVersion
-				};
-			}
-		};
-	});
-;
-angular.module('data-transfer')
-
-	.factory('configService', function () {
-		var settings; // Object that stores all settings
-		// Ajax request to settings.json file. Get settings in json format
-		$.ajax({
-			url: '/dataTransfer/settings.json',
-			async: false,
-			dataType: 'json',
-			success: function (response) {
-				settings = response;
-			}
-		});
-
-		return {
-			// Function that returns if the dropped file should upload automatically (boolean)
-			getAutoStart: function () {
-				return settings.autoStart;
-			},
-			// Function that returns the number of time a failed upload should retry automatically (number)
-			getAutoRetriesQty: function () {
-				return settings.autoRetriesQty;
-			},
-			// Function that returns the number of transfers that can run at the same time (number)
-			getConcurentTransfersQty: function () {
-				return settings.concurentTransfersQty;
-			},
-			// Function that returns URL of the API endpoint (string)
-			getUploadURL: function () {
-				return settings.baseURL + settings.uploadURL;
-			},
-			getFilesURL: function () {
-				return settings.baseURL + settings.filesURL;
-			},
-			// Function that returns the number of transfers that are displayed on the same page in the view (number)
-			getDisplayedTransfersQty: function () {
-				return settings.displayedTransfersQty;
-			}
-		};
-	});
-;
-angular.module('data-transfer')
-
-	.factory('mockService', ['$timeout', function ($timeout) {
-		var transfers = []; // Array of transfers
-		return {
-			// Function that uploads a file
-			uploadFile: function (file) {
-				transfers.push(file); // Add the file to the transfers array
-				transfers[transfers.length -1].status = 'Queued';
-				var prog = file.prog; // Progress 
-				var time;
-				if (file.time !== undefined) {
-					time = file.time; // Elapsed time of the upload 
-				}
-				else {
-					time = 0;
-				}
-				var complete = false; // Indicates if the upload is complete
-				var timeout; // Duration of the upload (changes depending to the name of the file)
-				var finishedSent = false; // Indicates if finished event has been sent. Allows to send it only once.
-				var status; // Status which is set depending to the name of the file
-
-				// Events
-				var progress = $.Event('progress'); // Sent every 100ms to update progress
-				var finished = $.Event('complete'); // Sent when upload is complete (when time = timeout)
-
-				// Interval that executes a function each 100 ms
-				var interval = setInterval(function () {
-					var index = transfers.lastIndexOf(file); // Get the index of the file in transfers array
-					if (index !== -1) { // If file exists in array
-						if (transfers[index].status === 'Failed' || transfers[index].status === 'Queued') { // If the up has failed (retry)
-							transfers[index].status = 'Pending'; // Status is now pending
-						}
-						if (transfers[index].status === 'Queued') { // If the upload has not been started yet
-							time = 0; // Set time to 0
-						}
-						if (transfers[index].status === 'Pending') { // If the upload is pending (running)
-							time += 100; // 100 ms seconds has passed sinces last interval
-						}
-						prog = (time / timeout) * 100; // Progress in percent
-						progress.prog = prog; // Affect this progress to the event
-						progress.file = file; // Affect the file to the event
-						progress.elapsedTime = time / 1000 + ' s'; // Elapsed time (in seconds)
-						progress.time = time;
-						complete = time > timeout; // Check if upload is complete
-						progress.remainingTime = (timeout - time) / 1000 + ' s'; // Remaining time is timeout - time (in seconds)
-						progress.state = transfers[index].status; // State of the progress event is the status of the running transfer
-						if (!complete) { // If transfer is not complete
-							$(window).trigger(progress); // Trigger the progress event
-						}
-						// If upload is complete
-						else {
-							if (!finishedSent) { // And finished event hadn't been sent 
-								finished.state = status; // Set state of the finished event
-								finished.file = file; // Set the file that is concerned by this event
-								finished.service = 'mock';
-								index = transfers.indexOf(file); // Index of the file in the transfers array
-								transfers.splice(index, 1); // Remove file from transfers array
-								finishedSent = true; // Finished event has been sent
-								clearInterval(interval); // Clear this interval
-								$(window).trigger(finished); // Trigger the finished event
-							}
-						}
-					}
-				}, 100);
-
-				// Check if the name of the file contains 'success'
-				if (file.name.indexOf('success') !== -1) {
-					timeout = 2000; // Set timeout to 2 seconds
-					status = 'Succeeded'; // Status is Succeeded
-				}
-				// Check if the name of the file contains 'error'
-				else if (file.name.indexOf('error') !== -1) {
-					timeout = 3000; // Set timeout to 3 seconds
-					status = 'Failed'; // Status is Failed
-				}
-				// If the name of the file contains neither 'succes' or 'error'
-				else {
-					timeout = 5000; // Set timeout to 5 seconds
-					status = 'Failed'; // Status is Failed
-				}
-			},
-			// Function that suspends the upload
-			pause: function (trans) {
-				var index = transfers.indexOf(trans); // Get the index of the file in the transfers array
-				transfers[index].status = 'Paused'; // Set status to Paused
-			},
-			// Function that resumes the upload
-			resume: function (trans) {
-				var index = transfers.indexOf(trans); // Get the index of the file in the transfers array
-				if (index !== -1) {
-					transfers[index].status = 'Pending'; // Set status to Pending
-				}
-				else {
-					trans.status = 'Pending';
-					this.uploadFile(trans);
-				}
-			},
-			// Function that stops the upload
-			stop: function (trans) {
-				var index = transfers.indexOf(trans); // Get the index of the file in the transfers array
-				if (index !== -1) {
-					transfers[index].status = 'Queued'; // Set status to Queued
-				}
-				else {
-					trans.status = 'Queued';
-					trans.time = 0;
-					trans.prog = 0;
-					trans.elapsedTime = '';
-					trans.remainingTime = '';
-				}
-			}
-		};
-	}]);
-;
-angular.module('data-transfer')
-
-	.factory('serviceFactory', ['uploadService', 'mockService', function (uploadService, mockService) {
-
-		return {
-			// Function that returns either mockService or uploadService, depending on the value of service argument
-			getService: function (service) {
-				var returnedService = {}; // Service that will be returned
-				switch (service) {
-					case 'mock': // If the parameter is 'mock'
-						returnedService = mockService; // Return mockService
-						break;
-					case 'upload': // If the parameter is 'upload'
-						returnedService = uploadService; // Return uploadService
-						break;
-					default: // In each other case
-						returnedService = mockService; // Return mockService
-						break;
-				}
-
-				return returnedService;
-			}
-		};
-	}]);
-;
-angular.module('data-transfer')
-
-	.factory('transfersService', ['serviceFactory', 'configService', '$http', function (serviceFactory, configService, $http) {
-
-		var files = [];
-		var autoRetries = [];
-		var filePushed = $.Event('filePushed');
-		var service = serviceFactory.getService('upload');
-		var transfersToRun = [];
-		var runningTransfers = [];
-		var concurentTransfers = configService.getConcurentTransfersQty(); // Get the number of transfers that can run at the same time
-		var transfersCompleted = 0; // Number of completed transfers
-		var zipResponse = false;
+/*! data-transfer 17.02.2017 */
+angular.module('dt-download', [])
+	.service('downloadService', function () {
+		/** Array that contains all XMLHttpRequests */
 		var xhrArray = [];
-		var aborted = false;
 
-		var run = $.Event('run');
-		run.state = 'Pending';
-
-		//--------------------------------------------------------------------------------------
-		// Request for the storage space
-		window.requestFileSystem = window.requestFileSystem || window.webkitRequestFileSystem;
-		window.storageInfo = window.storageInfo || window.webkitStorageInfo;
-
-		// Request access to the file system
-		var fileSystem = null,         // DOMFileSystem instance
-			fsType = PERSISTENT,       // PERSISTENT vs. TEMPORARY storage
-			fsSize = 10 * 1024 * 1024; // size (bytes) of needed space
-
-		window.storageInfo.requestQuota(fsType, fsSize, function (gb) {
-			window.requestFileSystem(fsType, gb, function (fs) {
-				fileSystem = fs;
-			}, errorHandler);
-		}, errorHandler);
-
-		//------------------------------------------------------------------------------------------
-		// Error handler
-		function errorHandler(e) {
-			var msg = '';
-
-			switch (e.code) {
-				case FileError.QUOTA_EXCEEDED_ERR:
-					msg = 'QUOTA_EXCEEDED_ERR';
-					break;
-				case FileError.NOT_FOUND_ERR:
-					msg = 'NOT_FOUND_ERR';
-					break;
-				case FileError.SECURITY_ERR:
-					msg = 'SECURITY_ERR';
-					break;
-				case FileError.INVALID_MODIFICATION_ERR:
-					msg = 'INVALID_MODIFICATION_ERR';
-					break;
-				case FileError.INVALID_STATE_ERR:
-					msg = 'INVALID_STATE_ERR';
-					break;
-				default:
-					msg = 'Unknown Error';
-					break;
+		return {
+			/**
+			 * @callback downloadFinishedCallback
+			 * @param {string} filename name of the file
+			 * @param {string} state status of the transfer (Succeeded or Failed)
+			 */
+			/**
+			 * @callback downloadProgressCallback
+			 * @param {number} progress progress percentage of the download
+			 * @param {number} loaded amount of data loaded
+			 * @param {number} elapsedTime time elapsed since the behinning of the download
+			 * @param {number} size size of the file to download
+			 * @param {string} filename name of the file to download
+			 */
+			/**
+			 * Downloads the file that have the specified file name at the specified URL
+			 * @param {string} filename Name of the file to download
+			 * @param {string} url url of the API endpoint to call to download the file
+			 * @param {downloadFinishedCallback} finishedCallback callback function when download is finished
+			 * @param {downloadProgressCallback} progressCallback callback function called when progress event is triggered
+			 */
+			download: function (filename, url, finishedCallback, progressCallback) {
+				var ms = 0; // Elapsed time counter
+				// 100 ms interval to increment counter
+				window.setInterval(function () {
+					ms += 100;
+				}, 100);
+				// Http request that calls the API to download a file
+				var xhr = new XMLHttpRequest();
+				xhr.open('GET', url); // Open request
+				xhr.responseType = 'blob'; // Response type is blob
+				xhr.onprogress = function (e) { // Progress event of the request
+					var progress = e.loaded / e.total * 100; // Percentage
+					progressCallback(progress, e.loaded, ms, e.total, filename);
+				};
+				xhr.onloadend = function () { // End of request event
+					if (xhr.readyState === 4) { // If request state is 'Done'
+						var status = '';
+						if (xhr.status < 400) { // If the http status is not error
+							var zipResponse = false;
+							zipResponse = xhr.response.type === 'application/zip'; // Check if the file is a zipped file (the VSD API sends zipped file, but some other API would not)
+							saveAs(xhr.response, zipResponse ? filename + '.zip' : filename); // Download the file in the user's file system (uses saveAs function of FileSaver.js)
+							status = 'Succeeded';
+						}
+						else { // If the status if error
+							status = 'Failed'; // Transfer status is failed
+						}
+						xhrArray.splice(xhrArray.indexOf(xhr), 1); // Remove the xhr from the array, because it's finished
+						finishedCallback(filename, status); 
+					}
+				};
+				xhrArray.push(xhr); // Add the request to the 
+				xhr.send(); // Send the request to the API
+			},
+			/**
+			 * @callback stoppedCallback
+			 * @param {object} trans transfer stopped
+			 */
+			/**
+			 * Stops the download
+			 * @param {number} index index of the XMLHttpRequest to stop in the xhrArray
+			 * @param {object} trans transfer to stop
+			 * @param {stoppedCallback} cb callback called when the request is stopped
+			 */
+			stop: function (index, trans, cb) {
+				xhrArray[index].abort(); // Cancel the request
+				xhrArray.splice(index, 1); // Remove it from the array
+				cb(trans);
 			}
+		};
+	});
+;
+var dt = dt || angular.module('data-transfer', ['dt-download', 'ui.bootstrap', 'templates-dataTransfer']);
 
-			console.log('Error: ' + msg);
-		}
+dt.factory('browserDetectionService', function () {
+	return {
+		/**
+		 * Allows to get information about the browser
+		 * @return Object with an indication if it has webkit or not, webkit version (null if not supported), browser name and browser major version
+		 */
+		getBrowserInfo: function () {
+			// Code found at http://www.javascripter.net/faq/browsern.htm
+			var nVer = navigator.appVersion;
+			var nAgt = navigator.userAgent;
+			var browserName = navigator.appName;
+			var fullVersion = '' + parseFloat(navigator.appVersion);
+			var majorVersion = parseInt(navigator.appVersion, 10);
+			var nameOffset, verOffset, ix;
 
-		//-------------------------------------------------------
-		// Download file function
-		function downloadFile(url, name, success) {
-			var xhr = new XMLHttpRequest();
-			var ms = 0;
-			xhr.open('GET', url, true);
-			xhr.responseType = "blob";
-			window.setInterval(function () {
-				ms += 100;
-			}, 100);
-			xhr.onprogress = function (e) {
-				var percentComplete = e.loaded / e.total * 100;
-				var progress = $.Event('progress');
-				progress.progress = percentComplete;
-				progress.loaded = e.loaded;
-				progress.elapsedTime = ms;
-				progress.size = e.total;
-				progress.file = name;
-				$(window).trigger(progress);
+			// In Opera 15+, the true version is after "OPR/" 
+			if ((verOffset = nAgt.indexOf("OPR/")) != -1) {
+				browserName = "Opera";
+				fullVersion = nAgt.substring(verOffset + 4);
+			}
+			// In older Opera, the true version is after "Opera" or after "Version"
+			else if ((verOffset = nAgt.indexOf("Opera")) != -1) {
+				browserName = "Opera";
+				fullVersion = nAgt.substring(verOffset + 6);
+				if ((verOffset = nAgt.indexOf("Version")) != -1)
+					fullVersion = nAgt.substring(verOffset + 8);
+			}
+			// In MSIE, the true version is after "MSIE" in userAgent
+			else if ((verOffset = nAgt.indexOf("MSIE")) != -1) {
+				browserName = "Microsoft Internet Explorer";
+				fullVersion = nAgt.substring(verOffset + 5);
+			}
+			// In Chrome, the true version is after "Chrome" 
+			else if ((verOffset = nAgt.indexOf("Chrome")) != -1) {
+				browserName = "Chrome";
+				fullVersion = nAgt.substring(verOffset + 7);
+			}
+			// In Safari, the true version is after "Safari" or after "Version" 
+			else if ((verOffset = nAgt.indexOf("Safari")) != -1) {
+				browserName = "Safari";
+				fullVersion = nAgt.substring(verOffset + 7);
+				if ((verOffset = nAgt.indexOf("Version")) != -1)
+					fullVersion = nAgt.substring(verOffset + 8);
+			}
+			// In Firefox, the true version is after "Firefox" 
+			else if ((verOffset = nAgt.indexOf("Firefox")) != -1) {
+				browserName = "Firefox";
+				fullVersion = nAgt.substring(verOffset + 8);
+			}
+			// In most other browsers, "name/version" is at the end of userAgent 
+			else if ((nameOffset = nAgt.lastIndexOf(' ') + 1) <
+				(verOffset = nAgt.lastIndexOf('/'))) {
+				browserName = nAgt.substring(nameOffset, verOffset);
+				fullVersion = nAgt.substring(verOffset + 1);
+				if (browserName.toLowerCase() == browserName.toUpperCase()) {
+					browserName = navigator.appName;
+				}
+			}
+			// trim the fullVersion string at semicolon/space if present
+			if ((ix = fullVersion.indexOf(";")) != -1)
+				fullVersion = fullVersion.substring(0, ix);
+			if ((ix = fullVersion.indexOf(" ")) != -1)
+				fullVersion = fullVersion.substring(0, ix);
+
+			majorVersion = parseInt('' + fullVersion, 10);
+			if (isNaN(majorVersion)) {
+				fullVersion = '' + parseFloat(navigator.appVersion);
+				majorVersion = parseInt(navigator.appVersion, 10);
+			}
+			// End of copied code
+
+			var webkit = detectWebKit();
+
+			return {
+				hasWebkit: webkit.iswebkit,
+				webkitVersion: this.hasWebkit ? parseFloat(webkit.version) : null,
+				name: browserName,
+				version: majorVersion
 			};
-			xhr.onloadend = function () {
-				if (xhr.readyState == 4 && !aborted) {
+		}
+	};
+});
+;
+var dt = dt || angular.module('data-transfer', ['dt-download', 'ui.bootstrap', 'templates-dataTransfer']);
+
+dt.factory('configService', function () {
+	var settings; // Object that stores all settings
+	// Ajax request to settings.json file. Get settings in json format
+	$.ajax({
+		url: '/dataTransfer/settings.json',
+		async: false,
+		dataType: 'json',
+		success: function (response) {
+			settings = response;
+		}
+	});
+
+	return {
+		/**
+		 * Function that returns if the dropped file should upload automatically (boolean)
+		 * @return true it uploads should start automatically
+		 */
+		getAutoStart: function () {
+			return settings.autoStart;
+		},
+
+		/**
+		 * Function that returns the number of time a failed upload should retry automatically (number)
+		 * @return number of times a failed transfer should retry
+		 */
+		getAutoRetriesQty: function () {
+			return settings.autoRetriesQty;
+		},
+		
+		/**
+		 * Function that returns the number of transfers that can run at the same time (number)
+		 * @return number of transfers that can run at the same time
+		 */
+		getConcurentTransfersQty: function () {
+			return settings.concurentTransfersQty;
+		},
+		
+		/**
+		 * Function that returns URL of the API upload endpoint (string)
+		 * @return URL of the API endpoint that uploads files
+		 */
+		getUploadURL: function () {
+			return settings.baseURL + settings.uploadURL;
+		},
+
+		/**
+		 * Function that returns URL of the API endpoint to get all files that are uploaded (string)
+		 * @return URL of the API endpoint that sends all available files
+		 */
+		getFilesURL: function () {
+			return settings.baseURL + settings.filesURL;
+		},
+		
+		/**
+		 * Function that returns the number of transfers that are displayed on the same page in the view (number)
+		 * @return number of transfers displayed at the same time
+		 */
+		getDisplayedTransfersQty: function () {
+			return settings.displayedTransfersQty;
+		}
+	};
+});
+;
+var dt = dt || angular.module('data-transfer', ['dt-download', 'ui.bootstrap', 'templates-dataTransfer']);
+
+dt.directive('dtTransfersView', function () {
+	return {
+		restrict: 'E',
+		scope: {
+			page: '='
+		},
+		templateUrl: 'js/dataTransfer/transfersView.tpl.html'
+	};
+});
+;
+var dt = dt || angular.module('data-transfer', ['dt-download', 'ui.bootstrap', 'templates-dataTransfer']);
+
+dt.service('serviceFactory', ['downloadService', function (downloadService) {
+	return {
+		/**
+		 * Create the desired service (inspired by the factory pattern)
+		 * @param {string} service name of the deisred service
+		 * @returns desired service depending on the name passed in arguments
+		 */
+		getService: function (service) {
+			if (service.toLowerCase().indexOf('down') > -1) {
+				return downloadService;
+			}
+		}
+	};
+}]);
+;
+var dt = dt || angular.module('data-transfer', ['dt-download', 'ui.bootstrap', 'templates-dataTransfer']);
+
+dt.service('transfersService', ['serviceFactory', 'configService', function (serviceFactory, configService) {
+	/** Service that is used to download the files */
+	var downloadService = serviceFactory.getService('download');
+	/** Array that stores all transfers */
+	var transfers = [];
+	/** Array that conatins all transfers that are running */
+	var runningTransfers = [];
+
+	return {
+		/**
+		 * Downloads the file that have the specified file name at the specified URL
+		 * @param {string} filename Name of the file to download
+		 * @param {string} url url of the API endpoint to call to download the file
+		 */
+		downloadFile: function (filename, url) {
+			if (transfers.indexOf(transfers.filter(function (t) {
+				return (t.name === filename && t.url === url);
+			})[0]) == -1) {
+				transfers.push({name: filename, url: url, retries: 0}); // Add a new transfer to the array
+			}
+			if (runningTransfers.length < configService.getConcurentTransfersQty()) {
+				var that = this; // Get the instance to call the downloadFile function
+				// Event to tell that a transfer has just been started
+				var start = $.Event('start');
+				start.filename = filename; 
+				start.url = url;
+				start.transferType = 'Download';
+				$(window).trigger(start);
+				// Call the download service
+				downloadService.download(filename, url, function (name, state) { // Finished callback
+					// Event to tell that the transfer has just finished
 					var finished = $.Event('finished');
 					finished.filename = name;
-					if (success) {
-						zipResponse = xhr.response.type === 'application/zip';
-						success(xhr.response);
-						finished.state = 'Succeeded';
-					}
-					else {
-						finished.state = 'Failed';
-					}
+					finished.state = state;
 					$(window).trigger(finished);
-				}
-			};
-			xhrArray.push(xhr);
-			xhr.send(null);
-		}
-
-		//------------------------------------------------------
-		// Save file function
-		function saveFile(data, path) {
-			if (!fileSystem) return;
-
-			fileSystem.root.getFile(path, { create: true }, function (fileEntry) {
-				fileEntry.createWriter(function (writer) {
-					writer.write(data);
-				}, errorHandler);
-			}, errorHandler);
-		}
-
-		// Event triggered by the service when an upload is finished
-		$(window).on('complete', function (e) {
-			var finished = $.Event('finished');
-			finished.file = e.file;
-			finished.service = e.service;
-			finished.state = e.state;
-			runningTransfers.splice(index, 1); // Remove succeeded transfer from running transfers array
-			var index = transfersToRun.indexOf(e.file); // Get the index of the file in the transfers array
-			var offset = concurentTransfers - 1; // Offset for the index to get the next transfer
-			if (e.state === 'Succeeded') { // If upload has succeeded
-				transfersToRun.splice(index, 1);
-				$(window).trigger(finished);
-				transfersCompleted++; // Incerment the counter of completed transfers
-				if (transfersCompleted < files.length - offset) { // If there is still queued transfers
-					if (configService.getAutoStart()) { // If upload should start automatically
-						runningTransfers.push(files[transfersCompleted + offset]); // Add next queued transfer to running transfers array
-						service.uploadFile(files[transfersCompleted + offset]); // Run this transfer
-						run.file = files[transfersCompleted + offset];
-						$(window).trigger(run);
+					// Check if the transfer has failed
+					if (state === 'Failed') {
+						var trans = transfers.filter(function (t) {
+							return t.name === filename;
+						})[0]; // Get the finished transfer from transfers array
+						if (trans.retries < configService.getAutoRetriesQty()) { // If the autoRetries limit hasn't been reached yet
+							that.downloadFile(filename, url); // Call recursively the downloadFile function
+							trans.retries++; // Increment retires counter
+						}
 					}
-				}
-			}
-			else if (e.state === 'Failed') {
-				if (autoRetries[index] < configService.getAutoRetriesQty()) {
-					service.uploadFile(e.file);
-					e.state = 'Pending';
-					run.state = e.state;
-					run.file = e.file;
-					$(window).trigger(run);
-					autoRetries[index]++;
-				}
-				else {
-					transfersToRun.splice(index, 1);
-					transfersCompleted++;
-					if (configService.getAutoStart() && transfersCompleted + offset < files.length) {
-						service.uploadFile(files[transfersCompleted + offset]); // Run this transfer
-						run.file = files[transfersCompleted + offset];
-						$(window).trigger(run);
-					}
-					$(window).trigger(finished);
-				}
-			}
-		});
-
-		return {
-			pushFile: function (file) {
-				files.push(file);
-				autoRetries.push(0);
-				filePushed.status = configService.getAutoStart() ? 'Pending' : 'Queued';
-				filePushed.file = file;
-				$(window).trigger(filePushed);
-				if (configService.getAutoStart()) {
-					this.start(file);
-				}
-			},
-			getFiles: function () {
-				return files;
-			},
-			removeFile: function (file) {
-				var index = files.indexOf(file);
-				files.splice(index, 1);
-				transfersToRun.splice(index, 1);
-				runningTransfers.splice(index, 1);
-				transfersCompleted = 0;
-				var remove = $.Event('remove');
-				remove.index = index;
-				$(window).trigger(remove);
-			},
-			start: function (file) {
-				autoRetries[files.indexOf(file)] = 0;
-				if (runningTransfers.length < concurentTransfers) {
-					transfersToRun.push(file);
-					runningTransfers.push(file);
-					service.uploadFile(file);
-					run.file = file;
-					$(window).trigger(run);
-				}
-			},
-			getRunningTransfers: function () {
-				return runningTransfers;
-			},
-			download: function (url, name) {
-				var dl = $.Event('download');
-				dl.fileName = name;
-				dl.downloadUrl = url;
-				$(window).trigger(dl);
-				downloadFile(url, name, function (blob) {
-					saveAs(blob, zipResponse ? name + '.zip' : name);
+				}, function (progress, loaded, elapsedTime, size, name) { // Progress callback
+					// Event to notify the view that the transfer is progressing
+					// This event contains all information needed to calculate progress, size, speed, elapsed time and remaining time
+					var progressEvt = $.Event('progress');
+					progressEvt.prog = progress;
+					progressEvt.loaded = loaded;
+					progressEvt.elapsedTime = elapsedTime;
+					progressEvt.size = size;
+					progressEvt.filename = name;
+					$(window).trigger(progressEvt);
 				});
-			},
-			stop: function (trans, index) {
-				xhrArray[index].abort();
-				var stopped = $.Event('stopped');
-				stopped.trans = trans;
-				$(window).trigger(stopped);
 			}
-		};
-	}]);
-;
-angular.module('data-transfer')
-
-	.factory('uploadService', ['$http', '$resource', 'configService', function ($http, $resource, configService) {
-		var url = configService.getUploadURL();
-		return {
-			uploadFile: function (file) {
-				var uploadFormData = new FormData();
-				uploadFormData.append('file', file);
-
-				$http.post(url, uploadFormData, {
-					transformRequest: angular.identity,
-					headers: { 'Content-Type': undefined }
-				})
-					.success(function (response) {
-						var finished = $.Event('complete'); // Sent when upload is complete (when time = timeout)
-						finished.file = file;
-						finished.state = 'Succeeded';
-						$(window).trigger(finished); // Trigger the finished event
-					})
-					.error(function (response) {
-						var finished = $.Event('complete'); // Sent when upload is complete (when time = timeout)
-						finished.file = file;
-						finished.state = 'Failed';
-						$(window).trigger(finished); // Trigger the finished event
-					});
+		},
+		/**
+		 * @callback stoppedCallback
+		 * @param {object} transfer transfer stopped
+		 */
+		/**
+		 * Function that stops the transfer
+		 * @param {string} transferType Type of the transfer (may be Download or Upload)
+		 * @param {object} trans transfer to stop
+		 * @param {number} index index of the transfer
+		 * @param {stoppedCallback} stoppedCb callback called to notify caller that the transfer is stopped
+		 */
+		stop: function (transferType, trans, index, stoppedCb) {
+			if (transferType === 'Download') {
+				downloadService.stop(index, trans, function(t) {
+					stoppedCb(t);
+				});
 			}
-		};
-	}]);
-;
-angular.module('data-transfer')
+			else if (transferType === 'Upload') {
 
-	.directive('dtDropZone', function () {
-		return {
-			restrict: 'E',
-			templateUrl: 'js/directives/templates/dropZone.tpl.html'
+			}
+		}
+	};
+}]);
+;
+var dt = dt || angular.module('data-transfer', ['dt-download', 'ui.bootstrap', 'templates-dataTransfer']);
+
+dt.controller('viewController', ['$scope', 'configService', 'transfersService', function ($scope, configService, transfersService) {
+	/** Viewmodels for files */
+	var filesVM = [];
+	/** Current page of the pagination in the view */
+	var currentPage = 1;
+
+	// Event triggered when a transfer is started
+	$(window).on('start', function (e) {
+		var newFile = { // New file (fileVM)
+			name: e.filename,
+			downloadUrl: e.url,
+			transferType: e.transferType,
+			status: 'Pending',
+			prog: 0
 		};
+		if(filesVM.indexOf(filesVM.filter(function (f) {
+			return f.name === e.filename && f.transferType === e.transferType;
+		})[0]) === -1) { // If the fileVM doesn't exist
+			filesVM.push(newFile); // Add it to the array
+		}
+		$scope.definePagination(); // Define the pagination (show only files that are on the current page)
 	});
-;
-angular.module('data-transfer')
 
-	.directive('dtTransfersView', function () {
-		return {
-			restrict: 'E',
-			scope: {
-				page: '='
-			},
-			templateUrl: 'js/directives/templates/transfersView.tpl.html'
-		};
+	// Event triggered when a transfer is finished
+	$(window).on('finished', function (e) {
+		var file = filesVM.filter(function (f) {
+			return f.name === e.filename;
+		})[0]; // Get the transfer in the array that has the filename specified in the event
+		file.status = e.state; // CHange status
+		$scope.$apply(); // Apply changes in the scope
 	});
-;
-angular.module('data-transfer')
 
-	.controller('dropController', ['$scope', 'browserDetectionService', 'transfersService', function ($scope, browserDetectionService, transfersService) {
-		var browserInfo = browserDetectionService.getBrowserInfo();
-		var webkit = browserInfo.hasWebkit;
-		var hashes = [];
-		// Display the message in the drop zone
-		if (webkit) {
-			document.getElementById("dropMessage").innerHTML = "Drag n'drop your files or folders here";
+	// Event that notifies the progress of the transfer
+	$(window).on('progress', function (e) {
+		var file = filesVM.filter(function (f) {
+			return f.name === e.filename;
+		})[0]; // Get the transfer in the array that has the filename specified in the event
+		file.status = 'Pending';
+		file.prog = Math.floor(e.prog);
+		file.displaySize = function () { // Format the size of the file to display it with the correct unit (B, KB or MB)
+			var cptDiv = 0;
+			var size = e.size;
+			while (size > 1024) {
+				size /= 1024;
+				cptDiv++;
+			}
+			return (Number((size).toFixed(0))) + (cptDiv == 2 ? ' MB' : cptDiv == 1 ? ' KB' : ' B');
+		};
+		file.elapsedTime = e.elapsedTime / 1000;
+		file.speed = (e.loaded / e.elapsedTime) / 1024;
+		file.remainingTime = ((e.elapsedTime / e.prog) * (100 - e.prog)) / 1000;
+		$scope.$apply(); // Apply changes in the scope
+	});
+
+	/**
+	 * Starts the transfer
+	 * @param {object} trans Transfer to start
+	 */
+	$scope.start = function (trans) {
+		var index = filesVM.indexOf(trans);
+		trans.status = 'Pending';
+		if (trans.transferType === 'Upload') {
+			// transfersService.start(files[index]);
 		}
-		else {
-			document.getElementById("dropMessage").innerHTML = "Drag n'drop your files here";
+		else if (trans.transferType === 'Download') {
+			transfersService.downloadFile(trans.name, trans.downloadUrl);
 		}
+	};
 
-		$(window).on('remove', function (e) {
-			hashes.splice(e.index, 1);		
+	/**
+	 * Stops the transfer
+	 * @param {object} trans Transfer to stop
+	 * @param {number} index Index of the transfer in the view
+	 */
+	$scope.stop = function(trans, index){
+		transfersService.stop(trans.transferType, trans, index, function(t){
+			var file = filesVM[filesVM.indexOf(t)];
+			file.speed = 0;
+			file.elapsedTime = 0;
+			file.prog = 0;
+			file.remainingTime = 0;
+			file.status = 'Queued';
 		});
+		$scope.$apply();
+	};
 
-		var dropZone = document.getElementById("dropZone");
-
-		// onDragover event of the dropZone
-		dropZone.ondragover = function (ev) {
-			ev.preventDefault(); // Prevent dropped file to be openned in the browser
-		};
-
-		function pushFile(file) {
-			var droppedFile = {
-				lastModified: file.lastModified,
-				lastModifiedDate: file.lastModifiedDate,
-				name: file.name,
-				size: file.size,
-				type: file.type
-			};
-			var alreadyDropped = false;
-			var hash = CryptoJS.MD5(JSON.stringify(droppedFile));
-			for (var i = 0; i < hashes.length; i++) {
-				alreadyDropped = (JSON.stringify(hashes[i]) === JSON.stringify(hash));
-				if (alreadyDropped) {
-					i = hashes.length;
-					alert('File already dropped: ' + file.name);
+	/**
+	 * Function that changes the page of the table (by changing displayed transfers)
+	 * @param {number} num number of the page to display
+	 */
+	$scope.changePage = function (num) {
+		if (num !== 0)
+			currentPage = num; // Change currentPage
+		$scope.displayedTransfers = []; // Flushing displayed transfers array
+		var displayedQty = configService.getDisplayedTransfersQty();
+		transfers = filesVM;
+		// Loop that adds the correct number of transfers into the displayedTransfers array
+		for (var i = 0, trans = (currentPage - 1) * 5; i < displayedQty; i++ , trans++) {
+			if (transfers[trans] !== undefined) { // If the current transfer exist
+				if ($scope.page != 'upload' || transfers[trans].transferType == 'Upload') { // Check conditions to display current transfer (page different than "upload" or transfer type is "Upload")
+					$scope.displayedTransfers.push(transfers[trans]); // Affect the current displayedTransfer
+				}
+				else { // If transfer shouldn't be displayed
+					i--; // Decrement i. It has for effect to stay at the same index in the display array
 				}
 			}
-			if (!alreadyDropped) {
-				hashes.push(hash);
-				transfersService.pushFile(file);
-			}
+			else // If the transfer doesn't exisit
+				i = displayedQty; // Go out of the loop
 		}
+	};
 
-		// onDrop event of the dropZone
-		dropZone.ondrop = function (ev) {
-			ev.preventDefault(); // Prevent dropped file to be openned in the browser
-			var droppedFiles = webkit ? ev.dataTransfer.items : ev.dataTransfer.files; // Dropped files array affected depending on the browser
-			for (var i = 0; i < droppedFiles.length; i++) {
-				if (webkit) {
-					var entry = droppedFiles[i].webkitGetAsEntry();
-					if (entry.isDirectory) {
-						$scope.scanDirectory(entry);
-					}
-					else if (entry.isFile) {
-						entry.file(pushFile);
-					}
-				}
-				else {
-					transfersService.pushFile(droppedFiles[i]);
-				}
-			}
-		};
-
-		// Function that scans the directory recursively, until it contains only files
-		$scope.scanDirectory = function (item) {
-			var directoryReader = item.createReader(); // A directory reader is needed to scan the directory
-
-			directoryReader.readEntries(function (entries) { // Read all entries of the directory (can be file or directory)
-				entries.forEach(function (entry) { // Go through all entries
-					if (entry.isDirectory) { // If it's a directory
-						$scope.scanDirectory(entry); // Scan it (recursion)
-					}
-					else if (entry.isFile) { // If it's a file
-						entry.file(pushFile);
-					}
-				});
+	/**
+	 * Function that defines the pagination (counts how many pages are needed to show all transfers)
+	 */
+	$scope.definePagination = function () {
+		var displayedQty = configService.getDisplayedTransfersQty();
+		$scope.pageCount = (filesVM.length / displayedQty) + 1; // Calculate number of pages from number of transfers to display
+		// init bootpag
+		$('#page-selection').bootpag({
+			total: $scope.pageCount,
+			maxVisible: displayedQty,
+			firstLastUse: true,
+			first: '←',
+			last: '→',
+		})
+			// When the user navigates in the pagination
+			.on("page", function (event, num) {
+				$scope.changePage(num); // Change the current page
+				$scope.$apply(); // Apply changes to be displayed on the view
 			});
-		};
-	}]);
-;
-angular.module('data-transfer')
+		if ($scope.page != 'upload') { // If the page is not "upload"
+			$scope.defineBodyPadding(); // Define bottom padding of the body
+		}
+		$scope.changePage(currentPage);
+	};
 
-	.controller('viewController', ['$scope', 'configService', 'transfersService', function ($scope, configService, transfersService) {
+	/**
+	 * Function that defines the bottom padding of the body. The goal is to always have the body above the transfers view in home page
+	 */
+	$scope.defineBodyPadding = function () {
+		var body = $("body"); // Get the body with jQuery		
+		body.css("padding-bottom", fileTransfersView.css("height")); // Bottom padding is equals to transfers view height
+	};
 
-		var files = [];
-		var filesVM = [];
-		$scope.runningTransfers = [];
-		$scope.displayedTransfers = [];
-		$scope.selectedTransfers = [];
-		$scope.failedTransfers = [];
-		var currentPage = 1;
-		$scope.allSelected = false;
-		var selectedTransfersCompleted = 0;
-		var failedTransfersRetried = 0;
-		$scope.areTransfersRunning = false;
+	var fileTransfersView = $("#fileTransfersView"); // Get the view with jQuery
+	var imgChevronCollapse = $("#imgChevronCollapse"); // Get icon with jQuery
 
-		$(window).on('download', function (e) {
-			var newFileVM = {
-				downloadUrl: e.downloadUrl,
-				name: e.fileName,
-				transferType: 'Download',
-				status: 'Pending',
-				prog: 0,
-				selected: false
-			};
-			console.debug(newFileVM);
-			var index = filesVM.indexOf(filesVM.filter(function (f) {
-				return f.downloadUrl === e.downloadUrl;
-			})[0]);
-			if (index > -1) {
-				filesVM.splice(index, 1);
-			}	
-			filesVM.push(newFileVM);
-			$scope.runningTransfers.push(newFileVM);
-			$scope.definePagination();
-			$scope.changePage(currentPage);
-		});
+	// Detects when the user click on the chevron icon of the transfers view
+	imgChevronCollapse.on('click', function () {
+		// Change the class to display an up or a down chevron (up when view is collapsed)
+		if (imgChevronCollapse.hasClass("fa-chevron-down")) {
+			imgChevronCollapse.removeClass("fa-chevron-down");
+			imgChevronCollapse.addClass("fa-chevron-up");
+		}
+		else if (imgChevronCollapse.hasClass("fa-chevron-up")) {
+			imgChevronCollapse.removeClass("fa-chevron-up");
+			imgChevronCollapse.addClass("fa-chevron-down");
+		}
+	});
 
-		$(window).on('filePushed', function (e) {
-			files.push(e.file);
-			$scope.runningTransfers = transfersService.getRunningTransfers();
-			var sta = 'Queued';
-			for (var i = 0; i < $scope.runningTransfers.length; i++) {
-				if ($scope.runningTransfers[i].name == e.file.name) {
-					sta = 'Pending';
-					i = $scope.runningTransfers.length;
-				}
-			}
-			var newFileVM = {
-				name: e.file.name,
-				size: e.file.size,
-				displaySize: function () {
-					var cptDiv = 0;
-					var size = this.size;
-					while (size > 1024) {
-						size /= 1024;
-						cptDiv++;
-					}
-					return (Number((size).toFixed(0))) + (cptDiv == 2 ? ' MB' : cptDiv == 1 ? ' KB' : ' B');
-				},
-				status: sta,
-				transferType: 'Upload',
-				selected: false
-			};
-			filesVM.push(newFileVM);
-			$scope.definePagination();
-			$scope.changePage(currentPage);
-			$scope.$apply();
-		});
+	// When the view is collapsed
+	fileTransfersView.on("hidden.bs.collapse", function () {
+		if ($scope.page != 'upload')
+			$scope.defineBodyPadding();
+	});
 
-		$(window).on('run', function (e) {
-			var index = files.indexOf(e.file);
-			filesVM[index].status = e.state;
-		});
+	// When the view is shown
+	fileTransfersView.on("shown.bs.collapse", function () {
+		if ($scope.page != 'upload')
+			$scope.defineBodyPadding();
+	});
 
-		$(window).on('progress', function (e) {
-			var index = filesVM.indexOf(filesVM.filter(function (f) {
-				return f.name === e.file;
-			})[0]); // Get the index of the file in the transfers array
-			filesVM[index].prog = Number((e.progress).toFixed(2));
-			var progressRemaining = 100 - filesVM[index].prog;
-			filesVM[index].remainingTime = ((e.elapsedTime / e.progress) * progressRemaining) / 1000;
-			filesVM[index].elapsedTime = e.elapsedTime / 1000;
-			var loaded = e.loaded;
-			filesVM[index].speed = (e.loaded / e.elapsedTime) / 1024;
-			filesVM[index].displaySize = function () {
-				var cptDiv = 0;
-				var size = e.size;
-				while (size > 1024) {
-					size /= 1024;
-					cptDiv++;
-				}
-				return (Number((size).toFixed(0))) + (cptDiv == 2 ? ' MB' : cptDiv == 1 ? ' KB' : ' B');
-			};
-			$scope.definePagination();
-			$scope.changePage(currentPage);
-			$scope.$apply();
-		});
-
-		$(window).on('stopped', function (e) {
-			filesVM[filesVM.indexOf(e.trans)].status = 'Queued';
-			filesVM[filesVM.indexOf(e.trans)].prog = 0;
-			filesVM[filesVM.indexOf(e.trans)].elapsedTime = 0;
-			filesVM[filesVM.indexOf(e.trans)].remainingTime = 0;
-			filesVM[filesVM.indexOf(e.trans)].speed = 0;
-			$scope.definePagination();
-			$scope.changePage(currentPage);
-			$scope.$apply();
-		});
-
-		$(window).on('finished', function (e) {
-			var index;
-			if (e.file !== undefined) {
-				index = files.indexOf(e.file); // Get the index of the file in the transfers array
-			}
-			else if (e.filename !== undefined) {
-				index = filesVM.indexOf(filesVM.filter(function (f) {
-					return f.name === e.filename;
-				})[0]);
-			}
-			var offset = 0;
-			if ($scope.selectedTransfers.length > 0) {
-				if ($scope.selectedTransfers.indexOf(filesVM[index]) > -1) {
-					offset = selectedTransfersCompleted + configService.getConcurentTransfersQty();
-					selectedTransfersCompleted++;
-					if (offset < $scope.selectedTransfers.length) {
-						$scope.start($scope.selectedTransfers[offset]);
-					}
-				}
-			}
-			if ($scope.failedTransfers.length > 0) {
-				if ($scope.failedTransfers.indexOf(filesVM[index]) > -1) {
-					offset = failedTransfersRetried + configService.getConcurentTransfersQty();
-					failedTransfersRetried++;
-					if (offset < $scope.failedTransfers.length) {
-						$scope.start($scope.failedTransfers[offset]);
-					}
-				}
-			}
-			filesVM[index].status = e.state;
-			$scope.definePagination();
-			$scope.changePage(currentPage);
-			$scope.failedTransfers = filesVM.filter(function (t) {
-				return t.status === 'Failed';
-			});
-			$scope.areTransfersRunning = filesVM.filter(function (t) {
-				return t.status === 'Pending';
-			}).length > 0;
-			if (e.service === 'mock' || filesVM[index].transferType === 'Download') {
-				$scope.$apply();
-			}
-		});
-
-		$scope.toggle = function (transfer) {
-			transfer.selected = !transfer.selected;
-			$scope.selectedTransfers = $scope.displayedTransfers.filter(function (t) {
-				return t.selected;
-			});
-		};
-
-		$scope.toggleAll = function () {
-			if ($scope.selectedTransfers.length === $scope.displayedTransfers.length) {
-				$scope.displayedTransfers.forEach(function (t) {
-					if (t.selected) {
-						$scope.toggle(t);
-					}
-				});
-			}
-			else {
-				$scope.displayedTransfers.forEach(function (t) {
-					if (!t.selected) {
-						$scope.toggle(t);
-					}
-				});
-			}
-			$scope.selectedTransfers = $scope.displayedTransfers.filter(function (t) {
-				return t.selected;
-			});
-		};
-
-		$scope.delete = function () {
-			$scope.selectedTransfers.forEach(function (t) {
-				var index = filesVM.indexOf(t);
-				transfersService.removeFile(files[index]);
-				filesVM.splice(index, 1);
-				files.splice(index, 1);
-			});
-			$scope.failedTransfers = filesVM.filter(function (t) {
-				return t.status === 'Failed';
-			});
-			$scope.selectedTransfers = [];
-			selectedTransfersCompleted = 0;
-			failedTransfersRetried = 0;
-			$scope.definePagination();
-			$scope.changePage(currentPage);
-		};
-
-		$scope.start = function (trans) {
-			var index = filesVM.indexOf(trans);
-			if (trans.transferType === 'Upload') {
-				transfersService.start(files[index]);
-			}
-			else if (trans.transferType === 'Download') {
-				transfersService.download(trans.downloadUrl, trans.name);
-			}
-		};
-
-		$scope.stop = function (trans) {
-			var index = filesVM.indexOf((filesVM.filter(function (f) {
-				return f === trans;
-			}))[0]);
-			transfersService.stop(trans, index);
-		};
-
-		$scope.startSelected = function () {
-			$scope.selectedTransfers.forEach(function (t) {
-				$scope.start(t);
-			});
-		};
-
-		$scope.retryFailed = function () {
-			$scope.failedTransfers.forEach(function (t) {
-				$scope.start(t);
-			});
-		};
-
-		// Function that changes the page of the table (by changing displayed transfers)
-		// num: number of the page to display
-		$scope.changePage = function (num) {
-			if (num !== 0)
-				currentPage = num; // Change currentPage
-			$scope.displayedTransfers = []; // Flushing displayed transfers array
-			var displayedQty = configService.getDisplayedTransfersQty();
-			transfers = filesVM;
-			// Loop that adds the correct number of transfers into the displayedTransfers array
-			for (var i = 0, trans = (currentPage - 1) * 5; i < displayedQty; i++ , trans++) {
-				if (transfers[trans] !== undefined) { // If the current transfer exist
-					if ($scope.page != 'upload' || transfers[trans].transferType == 'Upload') { // Check conditions to display current transfer (page different than "upload" or transfer type is "Upload")
-						$scope.displayedTransfers.push(transfers[trans]); // Affect the current displayedTransfer
-					}
-					else { // If transfer shouldn't be displayed
-						i--; // Decrement i. It has for effect to stay at the same index in the display array
-					}
-				}
-				else // If the transfer doesn't exisit
-					i = displayedQty; // Go out of the loop
-			}
-		};
-
-		$scope.definePagination = function () {
-			var displayedQty = configService.getDisplayedTransfersQty();
-			$scope.pageCount = (filesVM.length / displayedQty) + 1; // Calculate number of pages from number of transfers to display
-			// init bootpag
-			$('#page-selection').bootpag({
-				total: $scope.pageCount,
-				maxVisible: displayedQty,
-				firstLastUse: true,
-				first: '←',
-				last: '→',
-			})
-				// When the user navigates in the pagination
-				.on("page", function (event, num) {
-					$scope.changePage(num); // Change the current page
-					$scope.$apply(); // Apply changes to be displayed on the view
-				});
-			if ($scope.page != 'upload') // If the page is not "upload"
-				$scope.defineBodyPadding(); // Define bottom padding of the body
-		};
-
-		// Function that defines the bottom padding of the body. The goal is to always have the body above the transfers view in home page
-		$scope.defineBodyPadding = function () {
-			var body = $("body"); // Get the body with jQuery		
-			body.css("padding-bottom", fileTransfersView.css("height")); // Bottom padding is equals to transfers view height
-		};
-
-		var fileTransfersView = $("#fileTransfersView"); // Get the view with jQuery
-		var imgChevronCollapse = $("#imgChevronCollapse"); // Get icon with jQuery
-
-		// Detects when the user click on the chevron icon of the transfers view
-		imgChevronCollapse.on('click', function () {
-			// Change the class to display an up or a down chevron (up when view is collapsed)
-			if (imgChevronCollapse.hasClass("fa-chevron-down")) {
-				imgChevronCollapse.removeClass("fa-chevron-down");
-				imgChevronCollapse.addClass("fa-chevron-up");
-			}
-			else if (imgChevronCollapse.hasClass("fa-chevron-up")) {
-				imgChevronCollapse.removeClass("fa-chevron-up");
-				imgChevronCollapse.addClass("fa-chevron-down");
-			}
-		});
-
-		// When the view is collapsed
-		fileTransfersView.on("hidden.bs.collapse", function () {
-			if ($scope.page != 'upload')
-				$scope.defineBodyPadding();
-		});
-
-		// When the view is shown
-		fileTransfersView.on("shown.bs.collapse", function () {
-			if ($scope.page != 'upload')
-				$scope.defineBodyPadding();
-		});
-
-		// Event that is emitted when the ng-repeat directive (which displays all transfers that must be displayed) has finish to display all transfers			
-		$scope.$on('ngRepeatFinished', function (ngRepeatFinishedEvent) {
-			if ($scope.page != 'upload') // If the page isn't "upload"
-				$scope.defineBodyPadding(); // Define the padding of the body
-		});
-	}])
+	// Event that is emitted when the ng-repeat directive (which displays all transfers that must be displayed) has finish to display all transfers			
+	$scope.$on('ngRepeatFinished', function (ngRepeatFinishedEvent) {
+		if ($scope.page != 'upload') // If the page isn't "upload"
+			$scope.defineBodyPadding(); // Define the padding of the body
+	});
+}])
 	// Directive that fires an event when ng-repeat is finished
 	// (found on the internet: http://stackoverflow.com/questions/15207788/calling-a-function-when-ng-repeat-has-finished)
 	.directive('onFinishRender', function ($timeout) {
