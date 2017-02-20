@@ -7,6 +7,8 @@ dt.service('transfersService', ['serviceFactory', 'configService', function (ser
 	var transfers = [];
 	/** Array that conatins all transfers that are running */
 	var runningTransfers = [];
+	/** Counter of finished transfers */
+	var finishedTransfers = 0;
 
 	return {
 		/**
@@ -21,6 +23,7 @@ dt.service('transfersService', ['serviceFactory', 'configService', function (ser
 				transfers.push({ name: filename, url: url, retries: 0 }); // Add a new transfer to the array
 			}
 			if (runningTransfers.length < configService.getConcurentTransfersQty()) {
+				runningTransfers.push({ name: filename, url: url, retries: 0 });
 				var that = this; // Get the instance to call the downloadFile function
 				// Event to tell that a transfer has just been started
 				var start = $.Event('start');
@@ -36,13 +39,36 @@ dt.service('transfersService', ['serviceFactory', 'configService', function (ser
 					finished.state = state;
 					$(window).trigger(finished);
 					// Check if the transfer has failed
+					var trans = transfers.filter(function (t) {
+						return t.name === filename;
+					})[0]; // Get the finished transfer from transfers array
+					var index;
 					if (state === 'Failed') {
-						var trans = transfers.filter(function (t) {
-							return t.name === filename;
-						})[0]; // Get the finished transfer from transfers array
 						if (trans.retries < configService.getAutoRetriesQty()) { // If the autoRetries limit hasn't been reached yet
 							that.downloadFile(filename, url); // Call recursively the downloadFile function
 							trans.retries++; // Increment retires counter
+						}
+						else {
+							finishedTransfers++;
+							index = runningTransfers.indexOf(runningTransfers.filter(function (t) {
+								return t.name === trans.name;
+							})[0]);
+							runningTransfers.splice(index, 1);
+							index = finishedTransfers + configService.getConcurentTransfersQty() - 1;
+							if (transfers.length > index) {
+								that.downloadFile(transfers[index].name, transfers[index].url);
+							}
+						}
+					}
+					else if (state === 'Succeeded') {
+						finishedTransfers++;
+						index = runningTransfers.indexOf(runningTransfers.filter(function (t) {
+							return t.name === trans.name;
+						})[0]);
+						runningTransfers.splice(index, 1);
+						index = finishedTransfers + configService.getConcurentTransfersQty() - 1;
+						if (transfers.length > index) {
+							that.downloadFile(transfers[index].name, transfers[index].url);
 						}
 					}
 				}, function (progress, loaded, elapsedTime, size, name) { // Progress callback
@@ -66,11 +92,14 @@ dt.service('transfersService', ['serviceFactory', 'configService', function (ser
 		 * Function that stops the transfer
 		 * @param {string} transferType Type of the transfer (may be Download or Upload)
 		 * @param {object} trans transfer to stop
-		 * @param {number} index index of the transfer
 		 * @param {stoppedCallback} stoppedCb callback called to notify caller that the transfer is stopped
 		 */
-		stop: function (transferType, trans, index, stoppedCb) {
+		stop: function (transferType, trans, stoppedCb) {
 			if (transferType === 'Download') {
+				var index = runningTransfers.indexOf(runningTransfers.filter(function (t) {
+					return t.name === trans.name;
+				})[0]);
+				runningTransfers.splice(index, 1);
 				downloadService.stop(index, trans, function (t) {
 					stoppedCb(t);
 				});

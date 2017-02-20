@@ -76,11 +76,10 @@ dt.controller('viewController', ['$scope', 'configService', 'transfersService', 
 	/**
 	 * Stops the transfer
 	 * @param {object} trans Transfer to stop
-	 * @param {number} index Index of the transfer in the view
 	 */
-	$scope.stop = function (trans, index) {
+	$scope.stop = function (trans) {
 		trans.aborted = true;
-		transfersService.stop(trans.transferType, trans, index, function (t) {
+		transfersService.stop(trans.transferType, trans, function (t) {
 			var file = filesVM[filesVM.indexOf(t)];
 			file.speed = 0;
 			file.elapsedTime = 0;

@@ -45,7 +45,7 @@ angular.module('dt-download', [])
 						if (xhr.status < 400) { // If the http status is not error
 							var zipResponse = false;
 							zipResponse = xhr.response.type === 'application/zip'; // Check if the file is a zipped file (the VSD API sends zipped file, but some other API would not)
-							saveAs(xhr.response, zipResponse ? filename + '.zip' : filename); // Download the file in the user's file system (uses saveAs function of FileSaver.js)
+							// saveAs(xhr.response, zipResponse ? filename + '.zip' : filename); // Download the file in the user's file system (uses saveAs function of FileSaver.js)
 							status = 'Succeeded';
 						}
 						else { // If the status if error
@@ -55,7 +55,7 @@ angular.module('dt-download', [])
 						finishedCallback(filename, status);
 					}
 				};
-				xhrArray.push(xhr); // Add the request to the 
+				xhrArray.push(xhr); // Add the request to the array
 				xhr.send(); // Send the request to the API
 			},
 			/**
