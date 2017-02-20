@@ -1,4 +1,4 @@
-/*! data-transfer 17.02.2017 */
+/*! data-transfer 20.02.2017 */
 angular.module('dt-download', [])
 	.service('downloadService', function () {
 		/** Array that contains all XMLHttpRequests */
@@ -33,6 +33,7 @@ angular.module('dt-download', [])
 				}, 100);
 				// Http request that calls the API to download a file
 				var xhr = new XMLHttpRequest();
+				xhr.aborted = false;
 				xhr.open('GET', url); // Open request
 				xhr.responseType = 'blob'; // Response type is blob
 				xhr.onprogress = function (e) { // Progress event of the request
@@ -40,7 +41,7 @@ angular.module('dt-download', [])
 					progressCallback(progress, e.loaded, ms, e.total, filename);
 				};
 				xhr.onloadend = function () { // End of request event
-					if (xhr.readyState === 4) { // If request state is 'Done'
+					if (xhr.readyState === 4 && !xhr.aborted) { // If request state is 'Done'
 						var status = '';
 						if (xhr.status < 400) { // If the http status is not error
 							var zipResponse = false;
@@ -52,7 +53,7 @@ angular.module('dt-download', [])
 							status = 'Failed'; // Transfer status is failed
 						}
 						xhrArray.splice(xhrArray.indexOf(xhr), 1); // Remove the xhr from the array, because it's finished
-						finishedCallback(filename, status); 
+						finishedCallback(filename, status);
 					}
 				};
 				xhrArray.push(xhr); // Add the request to the 
@@ -69,6 +70,7 @@ angular.module('dt-download', [])
 			 * @param {stoppedCallback} cb callback called when the request is stopped
 			 */
 			stop: function (index, trans, cb) {
+				xhrArray[index].aborted = true;
 				xhrArray[index].abort(); // Cancel the request
 				xhrArray.splice(index, 1); // Remove it from the array
 				cb(trans);
@@ -275,13 +277,13 @@ dt.service('transfersService', ['serviceFactory', 'configService', function (ser
 			if (transfers.indexOf(transfers.filter(function (t) {
 				return (t.name === filename && t.url === url);
 			})[0]) == -1) {
-				transfers.push({name: filename, url: url, retries: 0}); // Add a new transfer to the array
+				transfers.push({ name: filename, url: url, retries: 0 }); // Add a new transfer to the array
 			}
 			if (runningTransfers.length < configService.getConcurentTransfersQty()) {
 				var that = this; // Get the instance to call the downloadFile function
 				// Event to tell that a transfer has just been started
 				var start = $.Event('start');
-				start.filename = filename; 
+				start.filename = filename;
 				start.url = url;
 				start.transferType = 'Download';
 				$(window).trigger(start);
@@ -328,7 +330,7 @@ dt.service('transfersService', ['serviceFactory', 'configService', function (ser
 		 */
 		stop: function (transferType, trans, index, stoppedCb) {
 			if (transferType === 'Download') {
-				downloadService.stop(index, trans, function(t) {
+				downloadService.stop(index, trans, function (t) {
 					stoppedCb(t);
 				});
 			}
@@ -354,9 +356,10 @@ dt.controller('viewController', ['$scope', 'configService', 'transfersService', 
 			downloadUrl: e.url,
 			transferType: e.transferType,
 			status: 'Pending',
-			prog: 0
+			prog: 0,
+			aborted: false
 		};
-		if(filesVM.indexOf(filesVM.filter(function (f) {
+		if (filesVM.indexOf(filesVM.filter(function (f) {
 			return f.name === e.filename && f.transferType === e.transferType;
 		})[0]) === -1) { // If the fileVM doesn't exist
 			filesVM.push(newFile); // Add it to the array
@@ -392,7 +395,9 @@ dt.controller('viewController', ['$scope', 'configService', 'transfersService', 
 		file.elapsedTime = e.elapsedTime / 1000;
 		file.speed = (e.loaded / e.elapsedTime) / 1024;
 		file.remainingTime = ((e.elapsedTime / e.prog) * (100 - e.prog)) / 1000;
-		$scope.$apply(); // Apply changes in the scope
+		if (!file.aborted) {
+			$scope.$apply(); // Apply changes in the scope
+		}
 	});
 
 	/**
@@ -400,6 +405,7 @@ dt.controller('viewController', ['$scope', 'configService', 'transfersService', 
 	 * @param {object} trans Transfer to start
 	 */
 	$scope.start = function (trans) {
+		trans.aborted = false;
 		var index = filesVM.indexOf(trans);
 		trans.status = 'Pending';
 		if (trans.transferType === 'Upload') {
@@ -415,8 +421,9 @@ dt.controller('viewController', ['$scope', 'configService', 'transfersService', 
 	 * @param {object} trans Transfer to stop
 	 * @param {number} index Index of the transfer in the view
 	 */
-	$scope.stop = function(trans, index){
-		transfersService.stop(trans.transferType, trans, index, function(t){
+	$scope.stop = function (trans, index) {
+		trans.aborted = true;
+		transfersService.stop(trans.transferType, trans, index, function (t) {
 			var file = filesVM[filesVM.indexOf(t)];
 			file.speed = 0;
 			file.elapsedTime = 0;
@@ -424,7 +431,7 @@ dt.controller('viewController', ['$scope', 'configService', 'transfersService', 
 			file.remainingTime = 0;
 			file.status = 'Queued';
 		});
-		$scope.$apply();
+		//$scope.$apply();
 	};
 
 	/**

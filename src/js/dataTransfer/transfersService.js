@@ -18,13 +18,13 @@ dt.service('transfersService', ['serviceFactory', 'configService', function (ser
 			if (transfers.indexOf(transfers.filter(function (t) {
 				return (t.name === filename && t.url === url);
 			})[0]) == -1) {
-				transfers.push({name: filename, url: url, retries: 0}); // Add a new transfer to the array
+				transfers.push({ name: filename, url: url, retries: 0 }); // Add a new transfer to the array
 			}
 			if (runningTransfers.length < configService.getConcurentTransfersQty()) {
 				var that = this; // Get the instance to call the downloadFile function
 				// Event to tell that a transfer has just been started
 				var start = $.Event('start');
-				start.filename = filename; 
+				start.filename = filename;
 				start.url = url;
 				start.transferType = 'Download';
 				$(window).trigger(start);
@@ -71,7 +71,7 @@ dt.service('transfersService', ['serviceFactory', 'configService', function (ser
 		 */
 		stop: function (transferType, trans, index, stoppedCb) {
 			if (transferType === 'Download') {
-				downloadService.stop(index, trans, function(t) {
+				downloadService.stop(index, trans, function (t) {
 					stoppedCb(t);
 				});
 			}

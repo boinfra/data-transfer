@@ -13,9 +13,10 @@ dt.controller('viewController', ['$scope', 'configService', 'transfersService', 
 			downloadUrl: e.url,
 			transferType: e.transferType,
 			status: 'Pending',
-			prog: 0
+			prog: 0,
+			aborted: false
 		};
-		if(filesVM.indexOf(filesVM.filter(function (f) {
+		if (filesVM.indexOf(filesVM.filter(function (f) {
 			return f.name === e.filename && f.transferType === e.transferType;
 		})[0]) === -1) { // If the fileVM doesn't exist
 			filesVM.push(newFile); // Add it to the array
@@ -51,7 +52,9 @@ dt.controller('viewController', ['$scope', 'configService', 'transfersService', 
 		file.elapsedTime = e.elapsedTime / 1000;
 		file.speed = (e.loaded / e.elapsedTime) / 1024;
 		file.remainingTime = ((e.elapsedTime / e.prog) * (100 - e.prog)) / 1000;
-		$scope.$apply(); // Apply changes in the scope
+		if (!file.aborted) {
+			$scope.$apply(); // Apply changes in the scope
+		}
 	});
 
 	/**
@@ -59,6 +62,7 @@ dt.controller('viewController', ['$scope', 'configService', 'transfersService', 
 	 * @param {object} trans Transfer to start
 	 */
 	$scope.start = function (trans) {
+		trans.aborted = false;
 		var index = filesVM.indexOf(trans);
 		trans.status = 'Pending';
 		if (trans.transferType === 'Upload') {
@@ -74,8 +78,9 @@ dt.controller('viewController', ['$scope', 'configService', 'transfersService', 
 	 * @param {object} trans Transfer to stop
 	 * @param {number} index Index of the transfer in the view
 	 */
-	$scope.stop = function(trans, index){
-		transfersService.stop(trans.transferType, trans, index, function(t){
+	$scope.stop = function (trans, index) {
+		trans.aborted = true;
+		transfersService.stop(trans.transferType, trans, index, function (t) {
 			var file = filesVM[filesVM.indexOf(t)];
 			file.speed = 0;
 			file.elapsedTime = 0;
@@ -83,7 +88,7 @@ dt.controller('viewController', ['$scope', 'configService', 'transfersService', 
 			file.remainingTime = 0;
 			file.status = 'Queued';
 		});
-		$scope.$apply();
+		//$scope.$apply();
 	};
 
 	/**

@@ -32,6 +32,7 @@ angular.module('dt-download', [])
 				}, 100);
 				// Http request that calls the API to download a file
 				var xhr = new XMLHttpRequest();
+				xhr.aborted = false;
 				xhr.open('GET', url); // Open request
 				xhr.responseType = 'blob'; // Response type is blob
 				xhr.onprogress = function (e) { // Progress event of the request
@@ -39,7 +40,7 @@ angular.module('dt-download', [])
 					progressCallback(progress, e.loaded, ms, e.total, filename);
 				};
 				xhr.onloadend = function () { // End of request event
-					if (xhr.readyState === 4) { // If request state is 'Done'
+					if (xhr.readyState === 4 && !xhr.aborted) { // If request state is 'Done'
 						var status = '';
 						if (xhr.status < 400) { // If the http status is not error
 							var zipResponse = false;
@@ -51,7 +52,7 @@ angular.module('dt-download', [])
 							status = 'Failed'; // Transfer status is failed
 						}
 						xhrArray.splice(xhrArray.indexOf(xhr), 1); // Remove the xhr from the array, because it's finished
-						finishedCallback(filename, status); 
+						finishedCallback(filename, status);
 					}
 				};
 				xhrArray.push(xhr); // Add the request to the 
@@ -68,6 +69,7 @@ angular.module('dt-download', [])
 			 * @param {stoppedCallback} cb callback called when the request is stopped
 			 */
 			stop: function (index, trans, cb) {
+				xhrArray[index].aborted = true;
 				xhrArray[index].abort(); // Cancel the request
 				xhrArray.splice(index, 1); // Remove it from the array
 				cb(trans);
