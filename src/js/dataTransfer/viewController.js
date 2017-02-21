@@ -129,6 +129,9 @@ dt.controller('viewController', ['$scope', 'configService', 'transfersService', 
 			var index = filesVM.indexOf(t);
 			filesVM.splice(index, 1);
 			files.splice(index, 1);
+			var removed = $.Event('removed');
+			removed.filename = t.name;
+			$(window).trigger(removed);
 		});
 		$scope.selectedTransfers = [];
 		$scope.failedTransfers = filesVM.filter(function (t) {

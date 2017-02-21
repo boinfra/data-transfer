@@ -43,6 +43,15 @@ dtUpload.controller('dropController', ['browserDetectionService', 'transfersServ
 		}
 	};
 
+	$(window).on('removed', function (e) {
+		var index = hashes.indexOf(hashes.filter(function (h) {
+			return h.filename === e.filename;
+		})[0]);
+		if (index > -1) {
+			hashes.splice(index, 1);
+		}
+	});
+
 	/**
 	 * Adds a new file to the list in transfersService, after checking if this file has already been dropped
 	 * @param {File} file file to check and add
@@ -58,14 +67,14 @@ dtUpload.controller('dropController', ['browserDetectionService', 'transfersServ
 		var alreadyDropped = false;
 		var hash = CryptoJS.MD5(JSON.stringify(droppedFile));
 		for (var i = 0; i < hashes.length; i++) {
-			alreadyDropped = (JSON.stringify(hashes[i]) === JSON.stringify(hash));
+			alreadyDropped = (JSON.stringify(hashes[i].hash) === JSON.stringify(hash));
 			if (alreadyDropped) {
 				i = hashes.length;
 				alert('File already dropped: ' + file.name);
 			}
 		}
 		if (!alreadyDropped) {
-			hashes.push(hash);
+			hashes.push({ hash: hash, filename: file.name });
 			var dropped = $.Event('dropped');
 			dropped.file = file;
 			dropped.status = configService.getAutoStart() ? 'Pending' : 'Queued';
