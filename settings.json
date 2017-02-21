@@ -6,5 +6,6 @@
 	"baseURL": "http://localhost:8080/api/",
 	"uploadURL": "upload",
 	"filesURL": "files",
-	"displayedTransfersQty": 5
+	"displayedTransfersQty": 5,
+	"apiErrorMessageName": "message"
 }

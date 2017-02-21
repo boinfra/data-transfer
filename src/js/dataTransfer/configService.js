@@ -59,6 +59,14 @@ dt.factory('configService', function () {
 		 */
 		getDisplayedTransfersQty: function () {
 			return settings.displayedTransfersQty;
+		},
+
+		/**
+		 * Function that returns the name of the message property in server response
+		 * @return name of the property
+		 */
+		getApiErrorMessageName: function () {
+			return settings.apiErrorMessageName;
 		}
 	};
 });

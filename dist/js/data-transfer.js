@@ -1,6 +1,6 @@
 /*! data-transfer 21.02.2017 */
 angular.module('dt-download', [])
-	.service('downloadService', function () {
+	.service('downloadService', ['configService', function (configService) {
 		/** Array that contains all XMLHttpRequests */
 		var xhrArray = [];
 
@@ -9,6 +9,7 @@ angular.module('dt-download', [])
 			 * @callback downloadFinishedCallback
 			 * @param {string} filename name of the file
 			 * @param {string} state status of the transfer (Succeeded or Failed)
+			 * @param {string} msg message displayed to inform the user about the error
 			 */
 			/**
 			 * @callback downloadProgressCallback
@@ -43,17 +44,32 @@ angular.module('dt-download', [])
 				xhr.onloadend = function () { // End of request event
 					if (xhr.readyState === 4 && !xhr.aborted) { // If request state is 'Done'
 						var status = '';
+						var errorMessage = '';
 						if (xhr.status < 400) { // If the http status is not error
 							var zipResponse = false;
 							zipResponse = xhr.response.type === 'application/zip'; // Check if the file is a zipped file (the VSD API sends zipped file, but some other API would not)
 							saveAs(xhr.response, zipResponse ? filename + '.zip' : filename); // Download the file in the user's file system (uses saveAs function of FileSaver.js)
 							status = 'Succeeded';
+							finishedCallback(filename, status, errorMessage);
 						}
 						else { // If the status if error
 							status = 'Failed'; // Transfer status is failed
+							var reader = new FileReader();
+							reader.onloadend = function () {
+								if (xhr.getResponseHeader('Content-Type').indexOf('application/json') > -1) {
+									errorMessage = JSON.parse(reader.result)[configService.getApiErrorMessageName()];
+								}
+								else if (xhr.getResponseHeader('Content-Type').indexOf('text/xml') > -1) {
+									var parser = new DOMParser();
+									xml = parser.parseFromString(reader.result, 'text/xml');
+									errorMessage = xml.getElementsByTagName(configService.getApiErrorMessageName())[0].childNodes[0].nodeValue;
+								}
+								finishedCallback(filename, status, errorMessage);
+							};
+							reader.readAsText(xhr.response);
 						}
 						xhrArray.splice(xhrArray.indexOf(xhr), 1); // Remove the xhr from the array, because it's finished
-						finishedCallback(filename, status);
+
 					}
 				};
 				xhrArray.push(xhr); // Add the request to the array
@@ -76,7 +92,7 @@ angular.module('dt-download', [])
 				cb(trans);
 			}
 		};
-	});
+	}]);
 ;
 var dtUpload = dtUpload || angular.module('dt-upload', []);
 
@@ -195,6 +211,7 @@ dtUpload.service('uploadService', ['configService', function (configService) {
 		 * @callback downloadFinishedCallback
 		 * @param {string} filename name of the file
 		 * @param {string} state status of the transfer (Succeeded or Failed)
+		 * @param {string} msg message displayed to inform the user about the error
 		 */
 		/**
 		 * @callback downloadProgressCallback
@@ -229,7 +246,16 @@ dtUpload.service('uploadService', ['configService', function (configService) {
 				if (xhr.readyState === 4 && !xhr.aborted) {
 					var status = xhr.status < 400 ? 'Succeeded' : 'Failed';
 					xhrArray.splice(xhrArray.indexOf(xhr), 1);
-					finishedCallback(file.name, status);
+					var errorMessage = '';
+					if (xhr.status >= 400) {
+						if (xhr.getResponseHeader('Content-Type').indexOf('application/json') > -1) {
+							errorMessage = JSON.parse(xhr.response)[configService.getApiErrorMessageName()];
+						}
+						else if (xhr.getResponseHeader('Content-Type').indexOf('text/xml') > -1) {
+							errorMessage = $(xhr.responseXML).find(configService.getApiErrorMessageName()).text();
+						}
+					}
+					finishedCallback(file.name, status, errorMessage);
 				}
 			};
 			xhrArray.push(xhr);
@@ -400,6 +426,14 @@ dt.factory('configService', function () {
 		 */
 		getDisplayedTransfersQty: function () {
 			return settings.displayedTransfersQty;
+		},
+
+		/**
+		 * Function that returns the name of the message property in server response
+		 * @return name of the property
+		 */
+		getApiErrorMessageName: function () {
+			return settings.apiErrorMessageName;
 		}
 	};
 });
@@ -472,7 +506,7 @@ dt.service('transfersService', ['serviceFactory', 'configService', function (ser
 				start.transferType = 'Download';
 				$(window).trigger(start);
 				// Call the download service
-				downloadService.download(filename, url, function (name, state) { // Finished callback
+				downloadService.download(filename, url, function (name, state, statusMessage) { // Finished callback
 					// Event to tell that the transfer has just finished
 					var finished = $.Event('finished');
 					finished.filename = name;
@@ -489,6 +523,9 @@ dt.service('transfersService', ['serviceFactory', 'configService', function (ser
 							trans.retries++; // Increment retires counter
 						}
 						else {
+							if (statusMessage !== undefined) {
+								alert(statusMessage);
+							}
 							finishedTransfers++;
 							index = runningTransfers.indexOf(runningTransfers.filter(function (t) {
 								return t.name === trans.name;
@@ -543,7 +580,7 @@ dt.service('transfersService', ['serviceFactory', 'configService', function (ser
 				start.transferType = 'Upload';
 				$(window).trigger(start);
 				// Call the upload service
-				uploadService.uploadFile(file, function (name, state) { // Finished callback
+				uploadService.uploadFile(file, function (name, state, statusMessage) { // Finished callback
 					// Event to tell that the transfer has just finished
 					var finished = $.Event('finished');
 					finished.filename = name;
@@ -560,6 +597,9 @@ dt.service('transfersService', ['serviceFactory', 'configService', function (ser
 							trans.retries++; // Increment retires counter
 						}
 						else {
+							if (statusMessage !== undefined) {
+								alert(statusMessage);
+							}
 							finishedTransfers++;
 							index = runningTransfers.indexOf(runningTransfers.filter(function (t) {
 								return t.name === trans.name;
@@ -757,6 +797,9 @@ dt.controller('viewController', ['$scope', 'configService', 'transfersService', 
 			files.splice(index, 1);
 		});
 		$scope.selectedTransfers = [];
+		$scope.failedTransfers = filesVM.filter(function (t) {
+			return t.status === 'Failed';
+		});
 		$scope.definePagination();
 	};
 

@@ -34,7 +34,7 @@ dt.service('transfersService', ['serviceFactory', 'configService', function (ser
 				start.transferType = 'Download';
 				$(window).trigger(start);
 				// Call the download service
-				downloadService.download(filename, url, function (name, state) { // Finished callback
+				downloadService.download(filename, url, function (name, state, statusMessage) { // Finished callback
 					// Event to tell that the transfer has just finished
 					var finished = $.Event('finished');
 					finished.filename = name;
@@ -51,6 +51,9 @@ dt.service('transfersService', ['serviceFactory', 'configService', function (ser
 							trans.retries++; // Increment retires counter
 						}
 						else {
+							if (statusMessage !== undefined) {
+								alert(statusMessage);
+							}
 							finishedTransfers++;
 							index = runningTransfers.indexOf(runningTransfers.filter(function (t) {
 								return t.name === trans.name;
@@ -105,7 +108,7 @@ dt.service('transfersService', ['serviceFactory', 'configService', function (ser
 				start.transferType = 'Upload';
 				$(window).trigger(start);
 				// Call the upload service
-				uploadService.uploadFile(file, function (name, state) { // Finished callback
+				uploadService.uploadFile(file, function (name, state, statusMessage) { // Finished callback
 					// Event to tell that the transfer has just finished
 					var finished = $.Event('finished');
 					finished.filename = name;
@@ -122,6 +125,9 @@ dt.service('transfersService', ['serviceFactory', 'configService', function (ser
 							trans.retries++; // Increment retires counter
 						}
 						else {
+							if (statusMessage !== undefined) {
+								alert(statusMessage);
+							}
 							finishedTransfers++;
 							index = runningTransfers.indexOf(runningTransfers.filter(function (t) {
 								return t.name === trans.name;

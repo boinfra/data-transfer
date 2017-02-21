@@ -9,6 +9,7 @@ dtUpload.service('uploadService', ['configService', function (configService) {
 		 * @callback downloadFinishedCallback
 		 * @param {string} filename name of the file
 		 * @param {string} state status of the transfer (Succeeded or Failed)
+		 * @param {string} msg message displayed to inform the user about the error
 		 */
 		/**
 		 * @callback downloadProgressCallback
@@ -43,7 +44,16 @@ dtUpload.service('uploadService', ['configService', function (configService) {
 				if (xhr.readyState === 4 && !xhr.aborted) {
 					var status = xhr.status < 400 ? 'Succeeded' : 'Failed';
 					xhrArray.splice(xhrArray.indexOf(xhr), 1);
-					finishedCallback(file.name, status);
+					var errorMessage = '';
+					if (xhr.status >= 400) {
+						if (xhr.getResponseHeader('Content-Type').indexOf('application/json') > -1) {
+							errorMessage = JSON.parse(xhr.response)[configService.getApiErrorMessageName()];
+						}
+						else if (xhr.getResponseHeader('Content-Type').indexOf('text/xml') > -1) {
+							errorMessage = $(xhr.responseXML).find(configService.getApiErrorMessageName()).text();
+						}
+					}
+					finishedCallback(file.name, status, errorMessage);
 				}
 			};
 			xhrArray.push(xhr);

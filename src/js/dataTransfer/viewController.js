@@ -131,6 +131,9 @@ dt.controller('viewController', ['$scope', 'configService', 'transfersService', 
 			files.splice(index, 1);
 		});
 		$scope.selectedTransfers = [];
+		$scope.failedTransfers = filesVM.filter(function (t) {
+			return t.status === 'Failed';
+		});
 		$scope.definePagination();
 	};
 

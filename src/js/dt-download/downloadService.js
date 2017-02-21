@@ -1,5 +1,5 @@
 angular.module('dt-download', [])
-	.service('downloadService', function () {
+	.service('downloadService', ['configService', function (configService) {
 		/** Array that contains all XMLHttpRequests */
 		var xhrArray = [];
 
@@ -8,6 +8,7 @@ angular.module('dt-download', [])
 			 * @callback downloadFinishedCallback
 			 * @param {string} filename name of the file
 			 * @param {string} state status of the transfer (Succeeded or Failed)
+			 * @param {string} msg message displayed to inform the user about the error
 			 */
 			/**
 			 * @callback downloadProgressCallback
@@ -42,17 +43,32 @@ angular.module('dt-download', [])
 				xhr.onloadend = function () { // End of request event
 					if (xhr.readyState === 4 && !xhr.aborted) { // If request state is 'Done'
 						var status = '';
+						var errorMessage = '';
 						if (xhr.status < 400) { // If the http status is not error
 							var zipResponse = false;
 							zipResponse = xhr.response.type === 'application/zip'; // Check if the file is a zipped file (the VSD API sends zipped file, but some other API would not)
 							saveAs(xhr.response, zipResponse ? filename + '.zip' : filename); // Download the file in the user's file system (uses saveAs function of FileSaver.js)
 							status = 'Succeeded';
+							finishedCallback(filename, status, errorMessage);
 						}
 						else { // If the status if error
 							status = 'Failed'; // Transfer status is failed
+							var reader = new FileReader();
+							reader.onloadend = function () {
+								if (xhr.getResponseHeader('Content-Type').indexOf('application/json') > -1) {
+									errorMessage = JSON.parse(reader.result)[configService.getApiErrorMessageName()];
+								}
+								else if (xhr.getResponseHeader('Content-Type').indexOf('text/xml') > -1) {
+									var parser = new DOMParser();
+									xml = parser.parseFromString(reader.result, 'text/xml');
+									errorMessage = xml.getElementsByTagName(configService.getApiErrorMessageName())[0].childNodes[0].nodeValue;
+								}
+								finishedCallback(filename, status, errorMessage);
+							};
+							reader.readAsText(xhr.response);
 						}
 						xhrArray.splice(xhrArray.indexOf(xhr), 1); // Remove the xhr from the array, because it's finished
-						finishedCallback(filename, status);
+
 					}
 				};
 				xhrArray.push(xhr); // Add the request to the array
@@ -75,4 +91,4 @@ angular.module('dt-download', [])
 				cb(trans);
 			}
 		};
-	});
+	}]);
