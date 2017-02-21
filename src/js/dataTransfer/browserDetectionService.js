@@ -1,4 +1,4 @@
-var dt = dt || angular.module('data-transfer', ['dt-download', 'ui.bootstrap', 'templates-dataTransfer']);
+var dt = dt || angular.module('data-transfer', ['dt-download', 'dt-upload', 'ui.bootstrap', 'templates-dataTransfer']);
 
 dt.factory('browserDetectionService', function () {
 	return {

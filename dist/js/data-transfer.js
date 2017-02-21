@@ -1,4 +1,4 @@
-/*! data-transfer 20.02.2017 */
+/*! data-transfer 21.02.2017 */
 angular.module('dt-download', [])
 	.service('downloadService', function () {
 		/** Array that contains all XMLHttpRequests */
@@ -46,7 +46,7 @@ angular.module('dt-download', [])
 						if (xhr.status < 400) { // If the http status is not error
 							var zipResponse = false;
 							zipResponse = xhr.response.type === 'application/zip'; // Check if the file is a zipped file (the VSD API sends zipped file, but some other API would not)
-							// saveAs(xhr.response, zipResponse ? filename + '.zip' : filename); // Download the file in the user's file system (uses saveAs function of FileSaver.js)
+							saveAs(xhr.response, zipResponse ? filename + '.zip' : filename); // Download the file in the user's file system (uses saveAs function of FileSaver.js)
 							status = 'Succeeded';
 						}
 						else { // If the status if error
@@ -78,7 +78,183 @@ angular.module('dt-download', [])
 		};
 	});
 ;
-var dt = dt || angular.module('data-transfer', ['dt-download', 'ui.bootstrap', 'templates-dataTransfer']);
+var dtUpload = dtUpload || angular.module('dt-upload', []);
+
+dtUpload.controller('dropController', ['browserDetectionService', 'transfersService', 'configService', function (browserDetectionService, transfersService, configService) {
+	// Detect currently used browser and display message depending on the browser
+	/** Information about the browser */
+	var browserInfo = browserDetectionService.getBrowserInfo();
+	/** Indicates if the browser supports webkit */
+	var webkit = browserInfo.hasWebkit;
+	if (webkit) {
+		document.getElementById("dropMessage").innerHTML = "Drag n'drop your files or folders here";
+	}
+	else {
+		document.getElementById("dropMessage").innerHTML = "Drag n'drop your files here";
+	}
+
+	/** Array that contains hashes of all files. Used to know if a file has already been dropped. */
+	var hashes = [];
+	/** Drop zone in the page (element) */
+	var dropZone = document.getElementById('dropZone');
+
+	// Event triggered when the user drags a file on the drop zone
+	dropZone.ondragover = function (e) {
+		e.preventDefault();
+	};
+
+	// Event triggeres when the user drops a file or directory in the drop zone
+	dropZone.ondrop = function (e) {
+		e.preventDefault(); // Prevent dropped file to be openned in the browser
+		var droppedFiles = webkit ? e.dataTransfer.items : e.dataTransfer.files; // Dropped files array affected depending on the browser
+		for (var i = 0; i < droppedFiles.length; i++) {
+			if (webkit) {
+				var entry = droppedFiles[i].webkitGetAsEntry();
+				if (entry.isDirectory) {
+					scanDirectory(entry);
+				}
+				else if (entry.isFile) {
+					entry.file(checkFileDuplicate);
+				}
+			}
+			else {
+				checkFileDuplicate(droppedFiles[i]);
+			}
+		}
+	};
+
+	/**
+	 * Adds a new file to the list in transfersService, after checking if this file has already been dropped
+	 * @param {File} file file to check and add
+	 */
+	function checkFileDuplicate(file) {
+		var droppedFile = {
+			lastModified: file.lastModified,
+			lastModifiedDate: file.lastModifiedDate,
+			name: file.name,
+			size: file.size,
+			type: file.type
+		};
+		var alreadyDropped = false;
+		var hash = CryptoJS.MD5(JSON.stringify(droppedFile));
+		for (var i = 0; i < hashes.length; i++) {
+			alreadyDropped = (JSON.stringify(hashes[i]) === JSON.stringify(hash));
+			if (alreadyDropped) {
+				i = hashes.length;
+				alert('File already dropped: ' + file.name);
+			}
+		}
+		if (!alreadyDropped) {
+			hashes.push(hash);
+			var dropped = $.Event('dropped');
+			dropped.file = file;
+			dropped.status = configService.getAutoStart() ? 'Pending' : 'Queued';
+			$(window).trigger(dropped);
+			if (configService.getAutoStart()) {
+				transfersService.uploadFile(file);
+			}
+		}
+	}
+
+	/**
+	 * Scans a dropped directory (only in browsers that support webkit)
+	 * @param {object} directory directory to scan
+	 */
+	function scanDirectory(directory) {
+		var directoryReader = directory.createReader(); // A directory reader is needed to scan the directory
+		directoryReader.readEntries(function (entries) { // Read all entries of the directory (can be file or directory)
+			entries.forEach(function (entry) { // Go through all entries
+				if (entry.isDirectory) { // If it's a directory
+					scanDirectory(entry); // Scan it (recursion)
+				}
+				else if (entry.isFile) { // If it's a file
+					entry.file(checkFileDuplicate);
+				}
+			});
+		});
+	}
+}]);
+;
+var dtUpload = dtUpload || angular.module('dt-upload', []);
+
+dtUpload.directive('dtDropZone', function () {
+	return {
+		restrict: 'E',
+		templateUrl: 'js/dt-upload/dropZone.tpl.html'
+	};
+});
+;
+var dtUpload = dtUpload || angular.module('dt-upload', []);
+
+dtUpload.service('uploadService', ['configService', function (configService) {
+	/** Array that contains all XMLHttpRequests */
+	var xhrArray = [];
+
+	return {
+		/**
+		 * @callback downloadFinishedCallback
+		 * @param {string} filename name of the file
+		 * @param {string} state status of the transfer (Succeeded or Failed)
+		 */
+		/**
+		 * @callback downloadProgressCallback
+		 * @param {number} progress progress percentage of the download
+		 * @param {number} loaded amount of data loaded
+		 * @param {number} elapsedTime time elapsed since the behinning of the download
+		 * @param {number} size size of the file to download
+		 * @param {string} filename name of the file to download
+		 */
+		/** 
+		 * Upload the specified file 
+		 * @param {File} file file to upload
+		 * @param {downloadFinishedCallback} finishedCallback callback function when download is finished
+		 * @param {downloadProgressCallback} progressCallback callback function called when progress event is triggered
+		 */
+		uploadFile: function (file, finishedCallback, progressCallback) {
+			var uploadFormData = new FormData();
+			uploadFormData.append('file', file);
+			var ms = 0; // Elapsed time counter
+			// 100 ms interval to increment counter
+			window.setInterval(function () {
+				ms += 100;
+			}, 100);
+			var xhr = new XMLHttpRequest();
+			xhr.aborted = false;
+			xhr.open('POST', configService.getUploadURL());
+			xhr.upload.onprogress = function (e) {
+				var progress = e.loaded / e.total * 100; // Percentage
+				progressCallback(progress, e.loaded, ms, e.total, file.name);
+			};
+			xhr.onloadend = function () {
+				if (xhr.readyState === 4 && !xhr.aborted) {
+					var status = xhr.status < 400 ? 'Succeeded' : 'Failed';
+					xhrArray.splice(xhrArray.indexOf(xhr), 1);
+					finishedCallback(file.name, status);
+				}
+			};
+			xhrArray.push(xhr);
+			xhr.send(uploadFormData);
+		},
+		/**
+		 * @callback stoppedCallback
+		 * @param {object} trans transfer stopped
+		 */
+		/**
+		 * Stops the upload
+		 * @param {number} index index of the XMLHttpRequest to stop in the xhrArray
+		 * @param {object} trans transfer to stop
+		 * @param {stoppedCallback} cb callback called when the request is stopped
+		 */
+		stop: function (index, trans, cb) {
+			xhrArray[index].aborted = true;
+			xhrArray[index].abort(); // Cancel the request
+			xhrArray.splice(index, 1); // Remove it from the array
+			cb(trans);
+		}
+	};
+}]);
+;
+var dt = dt || angular.module('data-transfer', ['dt-download', 'dt-upload', 'ui.bootstrap', 'templates-dataTransfer']);
 
 dt.factory('browserDetectionService', function () {
 	return {
@@ -163,7 +339,7 @@ dt.factory('browserDetectionService', function () {
 	};
 });
 ;
-var dt = dt || angular.module('data-transfer', ['dt-download', 'ui.bootstrap', 'templates-dataTransfer']);
+var dt = dt || angular.module('data-transfer', ['dt-download', 'dt-upload', 'ui.bootstrap', 'templates-dataTransfer']);
 
 dt.factory('configService', function () {
 	var settings; // Object that stores all settings
@@ -193,7 +369,7 @@ dt.factory('configService', function () {
 		getAutoRetriesQty: function () {
 			return settings.autoRetriesQty;
 		},
-		
+
 		/**
 		 * Function that returns the number of transfers that can run at the same time (number)
 		 * @return number of transfers that can run at the same time
@@ -201,7 +377,7 @@ dt.factory('configService', function () {
 		getConcurentTransfersQty: function () {
 			return settings.concurentTransfersQty;
 		},
-		
+
 		/**
 		 * Function that returns URL of the API upload endpoint (string)
 		 * @return URL of the API endpoint that uploads files
@@ -217,7 +393,7 @@ dt.factory('configService', function () {
 		getFilesURL: function () {
 			return settings.baseURL + settings.filesURL;
 		},
-		
+
 		/**
 		 * Function that returns the number of transfers that are displayed on the same page in the view (number)
 		 * @return number of transfers displayed at the same time
@@ -228,7 +404,7 @@ dt.factory('configService', function () {
 	};
 });
 ;
-var dt = dt || angular.module('data-transfer', ['dt-download', 'ui.bootstrap', 'templates-dataTransfer']);
+var dt = dt || angular.module('data-transfer', ['dt-download', 'dt-upload', 'ui.bootstrap', 'templates-dataTransfer']);
 
 dt.directive('dtTransfersView', function () {
 	return {
@@ -240,9 +416,9 @@ dt.directive('dtTransfersView', function () {
 	};
 });
 ;
-var dt = dt || angular.module('data-transfer', ['dt-download', 'ui.bootstrap', 'templates-dataTransfer']);
+var dt = dt || angular.module('data-transfer', ['dt-download', 'dt-upload', 'ui.bootstrap', 'templates-dataTransfer']);
 
-dt.service('serviceFactory', ['downloadService', function (downloadService) {
+dt.service('serviceFactory', ['downloadService', 'uploadService', function (downloadService, uploadService) {
 	return {
 		/**
 		 * Create the desired service (inspired by the factory pattern)
@@ -253,15 +429,20 @@ dt.service('serviceFactory', ['downloadService', function (downloadService) {
 			if (service.toLowerCase().indexOf('down') > -1) {
 				return downloadService;
 			}
+			else if (service.toLowerCase().indexOf('up') > -1) {
+				return uploadService;
+			}
 		}
 	};
 }]);
 ;
-var dt = dt || angular.module('data-transfer', ['dt-download', 'ui.bootstrap', 'templates-dataTransfer']);
+var dt = dt || angular.module('data-transfer', ['dt-download', 'dt-upload', 'ui.bootstrap', 'templates-dataTransfer']);
 
 dt.service('transfersService', ['serviceFactory', 'configService', function (serviceFactory, configService) {
 	/** Service that is used to download the files */
 	var downloadService = serviceFactory.getService('download');
+	/** Service that is used to upload the files */
+	var uploadService = serviceFactory.getService('upload');
 	/** Array that stores all transfers */
 	var transfers = [];
 	/** Array that conatins all transfers that are running */
@@ -344,6 +525,77 @@ dt.service('transfersService', ['serviceFactory', 'configService', function (ser
 			}
 		},
 		/**
+		 * Uploads a file
+		 * @param {File} file file to upload
+		 */
+		uploadFile: function (file) {
+			if (transfers.indexOf(transfers.filter(function (t) {
+				return (t.name === file.name);
+			})[0]) == -1) {
+				transfers.push({ file: file, name: file.name, retries: 0 }); // Add a new transfer to the array
+			}
+			if (runningTransfers.length < configService.getConcurentTransfersQty()) {
+				runningTransfers.push({ file: file, name: file.name, retries: 0 });
+				var that = this; // Get the instance to call the uploadFile function
+				// Event to tell that a transfer has just been started
+				var start = $.Event('start');
+				start.filename = file.name;
+				start.transferType = 'Upload';
+				$(window).trigger(start);
+				// Call the upload service
+				uploadService.uploadFile(file, function (name, state) { // Finished callback
+					// Event to tell that the transfer has just finished
+					var finished = $.Event('finished');
+					finished.filename = name;
+					finished.state = state;
+					$(window).trigger(finished);
+					// Check if the transfer has failed
+					var trans = transfers.filter(function (t) {
+						return t.name === file.name;
+					})[0]; // Get the finished transfer from transfers array
+					var index;
+					if (state === 'Failed') {
+						if (trans.retries < configService.getAutoRetriesQty()) { // If the autoRetries limit hasn't been reached yet
+							that.uploadFile(file); // Call recursively the uploadFile function
+							trans.retries++; // Increment retires counter
+						}
+						else {
+							finishedTransfers++;
+							index = runningTransfers.indexOf(runningTransfers.filter(function (t) {
+								return t.name === trans.name;
+							})[0]);
+							runningTransfers.splice(index, 1);
+							index = finishedTransfers + configService.getConcurentTransfersQty() - 1;
+							if (transfers.length > index) {
+								that.uploadFile(transfers[index].file);
+							}
+						}
+					}
+					else if (state === 'Succeeded') {
+						finishedTransfers++;
+						index = runningTransfers.indexOf(runningTransfers.filter(function (t) {
+							return t.name === trans.name;
+						})[0]);
+						runningTransfers.splice(index, 1);
+						index = finishedTransfers + configService.getConcurentTransfersQty() - 1;
+						if (transfers.length > index) {
+							that.uploadFile(transfers[index].file);
+						}
+					}
+				}, function (progress, loaded, elapsedTime, size, name) { // Progress callback
+					// Event to notify the view that the transfer is progressing
+					// This event contains all information needed to calculate progress, size, speed, elapsed time and remaining time
+					var progressEvt = $.Event('progress');
+					progressEvt.prog = progress;
+					progressEvt.loaded = loaded;
+					progressEvt.elapsedTime = elapsedTime;
+					progressEvt.size = size;
+					progressEvt.filename = name;
+					$(window).trigger(progressEvt);
+				});
+			}
+		},
+		/**
 		 * @callback stoppedCallback
 		 * @param {object} transfer transfer stopped
 		 */
@@ -354,33 +606,51 @@ dt.service('transfersService', ['serviceFactory', 'configService', function (ser
 		 * @param {stoppedCallback} stoppedCb callback called to notify caller that the transfer is stopped
 		 */
 		stop: function (transferType, trans, stoppedCb) {
+			var index = runningTransfers.indexOf(runningTransfers.filter(function (t) {
+				return t.name === trans.name;
+			})[0]);
+			runningTransfers.splice(index, 1);
 			if (transferType === 'Download') {
-				var index = runningTransfers.indexOf(runningTransfers.filter(function (t) {
-					return t.name === trans.name;
-				})[0]);
-				runningTransfers.splice(index, 1);
 				downloadService.stop(index, trans, function (t) {
 					stoppedCb(t);
 				});
 			}
 			else if (transferType === 'Upload') {
-
+				uploadService.stop(index, trans, function (t) {
+					stoppedCb(t);
+				});
 			}
 		}
 	};
 }]);
 ;
-var dt = dt || angular.module('data-transfer', ['dt-download', 'ui.bootstrap', 'templates-dataTransfer']);
+var dt = dt || angular.module('data-transfer', ['dt-download', 'dt-upload', 'ui.bootstrap', 'templates-dataTransfer']);
 
 dt.controller('viewController', ['$scope', 'configService', 'transfersService', function ($scope, configService, transfersService) {
 	/** Viewmodels for files */
 	var filesVM = [];
+	/** Files for upload */
+	var files = [];
 	/** Current page of the pagination in the view */
 	var currentPage = 1;
+	/** Transfers that are displayed in the view */
+	$scope.displayedTransfers = [];
+	/** Transfers that are selected */
+	$scope.selectedTransfers = [];
+	/** Transfers that have failed */
+	$scope.failedTransfers = [];
+	/** Indicates if some transfers are running */
+	$scope.areTransfersRunning = false;
+
+	// Define the padding of the body, so it is displayed above the view
+	window.onload = function () {
+		$scope.defineBodyPadding();
+	};
 
 	// Event triggered when a transfer is started
 	$(window).on('start', function (e) {
 		var newFile = { // New file (fileVM)
+			selected: false,
 			name: e.filename,
 			downloadUrl: e.url,
 			transferType: e.transferType,
@@ -401,7 +671,15 @@ dt.controller('viewController', ['$scope', 'configService', 'transfersService', 
 		var file = filesVM.filter(function (f) {
 			return f.name === e.filename;
 		})[0]; // Get the transfer in the array that has the filename specified in the event
-		file.status = e.state; // CHange status
+		file.status = e.state; // Change status
+		$scope.areTransfersRunning = filesVM.filter(function (t) {
+			return t.status === 'Pending';
+		}).length > 0;
+		if (e.state === 'Failed') {
+			if ($scope.failedTransfers.indexOf(file) === -1) {
+				$scope.failedTransfers.push(file);
+			}
+		}
 		$scope.$apply(); // Apply changes in the scope
 	});
 
@@ -429,6 +707,31 @@ dt.controller('viewController', ['$scope', 'configService', 'transfersService', 
 		}
 	});
 
+	$(window).on('dropped', function (e) {
+		var newFile = { // New file (fileVM)
+			selected: false,
+			name: e.file.name,
+			transferType: 'Upload',
+			status: 'Queued',
+			prog: 0,
+			aborted: false,
+			size: e.file.size,
+			displaySize: function () {
+				var cptDiv = 0;
+				var size = this.size;
+				while (size > 1024) {
+					size /= 1024;
+					cptDiv++;
+				}
+				return (Number((size).toFixed(0))) + (cptDiv == 2 ? ' MB' : cptDiv == 1 ? ' KB' : ' B');
+			},
+		};
+		filesVM.push(newFile);
+		files.push(e.file);
+		$scope.definePagination();
+		$scope.$apply();
+	});
+
 	/**
 	 * Starts the transfer
 	 * @param {object} trans Transfer to start
@@ -436,13 +739,66 @@ dt.controller('viewController', ['$scope', 'configService', 'transfersService', 
 	$scope.start = function (trans) {
 		trans.aborted = false;
 		var index = filesVM.indexOf(trans);
-		trans.status = 'Pending';
 		if (trans.transferType === 'Upload') {
-			// transfersService.start(files[index]);
+			transfersService.uploadFile(files[index]);
 		}
 		else if (trans.transferType === 'Download') {
 			transfersService.downloadFile(trans.name, trans.downloadUrl);
 		}
+	};
+
+	/**
+	 * Deletes selected transfers
+	 */
+	$scope.delete = function () {
+		$scope.selectedTransfers.forEach(function (t) {
+			var index = filesVM.indexOf(t);
+			filesVM.splice(index, 1);
+			files.splice(index, 1);
+		});
+		$scope.selectedTransfers = [];
+		$scope.definePagination();
+	};
+
+	/**
+	 * Retries all failed transfers
+	 */
+	$scope.retryFailed = function () {
+		$scope.failedTransfers.forEach(function (t) {
+			$scope.start(t);
+		});
+	};
+
+	/**
+	 * Function that selects / deselects all transfers
+	 */
+	$scope.toggleAll = function () {
+		if ($scope.selectedTransfers.length === $scope.displayedTransfers.length) {
+			$scope.displayedTransfers.forEach(function (t) {
+				if (t.selected) {
+					$scope.toggle(t);
+				}
+			});
+		}
+		else {
+			$scope.displayedTransfers.forEach(function (t) {
+				if (!t.selected) {
+					$scope.toggle(t);
+				}
+			});
+		}
+		$scope.selectedTransfers = $scope.displayedTransfers.filter(function (t) {
+			return t.selected;
+		});
+	};
+
+	/**
+	 * Starts all selected transfers
+	 */
+	$scope.startSelected = function () {
+		$scope.selectedTransfers.forEach(function (t) {
+			$scope.start(t);
+		});
 	};
 
 	/**
@@ -460,6 +816,17 @@ dt.controller('viewController', ['$scope', 'configService', 'transfersService', 
 			file.status = 'Queued';
 		});
 		//$scope.$apply();
+	};
+
+	/**
+	 * Function that changes the checked status of the transfer
+	 * @param {object} trans transfer to change status
+	 */
+	$scope.toggle = function (transfer) {
+		transfer.selected = !transfer.selected;
+		$scope.selectedTransfers = $scope.displayedTransfers.filter(function (t) {
+			return t.selected;
+		});
 	};
 
 	/**

@@ -1,14 +1,30 @@
-var dt = dt || angular.module('data-transfer', ['dt-download', 'ui.bootstrap', 'templates-dataTransfer']);
+var dt = dt || angular.module('data-transfer', ['dt-download', 'dt-upload', 'ui.bootstrap', 'templates-dataTransfer']);
 
 dt.controller('viewController', ['$scope', 'configService', 'transfersService', function ($scope, configService, transfersService) {
 	/** Viewmodels for files */
 	var filesVM = [];
+	/** Files for upload */
+	var files = [];
 	/** Current page of the pagination in the view */
 	var currentPage = 1;
+	/** Transfers that are displayed in the view */
+	$scope.displayedTransfers = [];
+	/** Transfers that are selected */
+	$scope.selectedTransfers = [];
+	/** Transfers that have failed */
+	$scope.failedTransfers = [];
+	/** Indicates if some transfers are running */
+	$scope.areTransfersRunning = false;
+
+	// Define the padding of the body, so it is displayed above the view
+	window.onload = function () {
+		$scope.defineBodyPadding();
+	};
 
 	// Event triggered when a transfer is started
 	$(window).on('start', function (e) {
 		var newFile = { // New file (fileVM)
+			selected: false,
 			name: e.filename,
 			downloadUrl: e.url,
 			transferType: e.transferType,
@@ -29,7 +45,15 @@ dt.controller('viewController', ['$scope', 'configService', 'transfersService', 
 		var file = filesVM.filter(function (f) {
 			return f.name === e.filename;
 		})[0]; // Get the transfer in the array that has the filename specified in the event
-		file.status = e.state; // CHange status
+		file.status = e.state; // Change status
+		$scope.areTransfersRunning = filesVM.filter(function (t) {
+			return t.status === 'Pending';
+		}).length > 0;
+		if (e.state === 'Failed') {
+			if ($scope.failedTransfers.indexOf(file) === -1) {
+				$scope.failedTransfers.push(file);
+			}
+		}
 		$scope.$apply(); // Apply changes in the scope
 	});
 
@@ -57,6 +81,31 @@ dt.controller('viewController', ['$scope', 'configService', 'transfersService', 
 		}
 	});
 
+	$(window).on('dropped', function (e) {
+		var newFile = { // New file (fileVM)
+			selected: false,
+			name: e.file.name,
+			transferType: 'Upload',
+			status: 'Queued',
+			prog: 0,
+			aborted: false,
+			size: e.file.size,
+			displaySize: function () {
+				var cptDiv = 0;
+				var size = this.size;
+				while (size > 1024) {
+					size /= 1024;
+					cptDiv++;
+				}
+				return (Number((size).toFixed(0))) + (cptDiv == 2 ? ' MB' : cptDiv == 1 ? ' KB' : ' B');
+			},
+		};
+		filesVM.push(newFile);
+		files.push(e.file);
+		$scope.definePagination();
+		$scope.$apply();
+	});
+
 	/**
 	 * Starts the transfer
 	 * @param {object} trans Transfer to start
@@ -64,13 +113,66 @@ dt.controller('viewController', ['$scope', 'configService', 'transfersService', 
 	$scope.start = function (trans) {
 		trans.aborted = false;
 		var index = filesVM.indexOf(trans);
-		trans.status = 'Pending';
 		if (trans.transferType === 'Upload') {
-			// transfersService.start(files[index]);
+			transfersService.uploadFile(files[index]);
 		}
 		else if (trans.transferType === 'Download') {
 			transfersService.downloadFile(trans.name, trans.downloadUrl);
 		}
+	};
+
+	/**
+	 * Deletes selected transfers
+	 */
+	$scope.delete = function () {
+		$scope.selectedTransfers.forEach(function (t) {
+			var index = filesVM.indexOf(t);
+			filesVM.splice(index, 1);
+			files.splice(index, 1);
+		});
+		$scope.selectedTransfers = [];
+		$scope.definePagination();
+	};
+
+	/**
+	 * Retries all failed transfers
+	 */
+	$scope.retryFailed = function () {
+		$scope.failedTransfers.forEach(function (t) {
+			$scope.start(t);
+		});
+	};
+
+	/**
+	 * Function that selects / deselects all transfers
+	 */
+	$scope.toggleAll = function () {
+		if ($scope.selectedTransfers.length === $scope.displayedTransfers.length) {
+			$scope.displayedTransfers.forEach(function (t) {
+				if (t.selected) {
+					$scope.toggle(t);
+				}
+			});
+		}
+		else {
+			$scope.displayedTransfers.forEach(function (t) {
+				if (!t.selected) {
+					$scope.toggle(t);
+				}
+			});
+		}
+		$scope.selectedTransfers = $scope.displayedTransfers.filter(function (t) {
+			return t.selected;
+		});
+	};
+
+	/**
+	 * Starts all selected transfers
+	 */
+	$scope.startSelected = function () {
+		$scope.selectedTransfers.forEach(function (t) {
+			$scope.start(t);
+		});
 	};
 
 	/**
@@ -88,6 +190,17 @@ dt.controller('viewController', ['$scope', 'configService', 'transfersService', 
 			file.status = 'Queued';
 		});
 		//$scope.$apply();
+	};
+
+	/**
+	 * Function that changes the checked status of the transfer
+	 * @param {object} trans transfer to change status
+	 */
+	$scope.toggle = function (transfer) {
+		transfer.selected = !transfer.selected;
+		$scope.selectedTransfers = $scope.displayedTransfers.filter(function (t) {
+			return t.selected;
+		});
 	};
 
 	/**

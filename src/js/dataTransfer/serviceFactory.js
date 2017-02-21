@@ -1,6 +1,6 @@
-var dt = dt || angular.module('data-transfer', ['dt-download', 'ui.bootstrap', 'templates-dataTransfer']);
+var dt = dt || angular.module('data-transfer', ['dt-download', 'dt-upload', 'ui.bootstrap', 'templates-dataTransfer']);
 
-dt.service('serviceFactory', ['downloadService', function (downloadService) {
+dt.service('serviceFactory', ['downloadService', 'uploadService', function (downloadService, uploadService) {
 	return {
 		/**
 		 * Create the desired service (inspired by the factory pattern)
@@ -10,6 +10,9 @@ dt.service('serviceFactory', ['downloadService', function (downloadService) {
 		getService: function (service) {
 			if (service.toLowerCase().indexOf('down') > -1) {
 				return downloadService;
+			}
+			else if (service.toLowerCase().indexOf('up') > -1) {
+				return uploadService;
 			}
 		}
 	};

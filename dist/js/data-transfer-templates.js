@@ -1,4 +1,4 @@
-angular.module('templates-dataTransfer', ['js/dataTransfer/transfersView.tpl.html']);
+angular.module('templates-dataTransfer', ['js/dataTransfer/transfersView.tpl.html', 'js/dt-upload/dropZone.tpl.html']);
 
 angular.module("js/dataTransfer/transfersView.tpl.html", []).run(["$templateCache", function($templateCache) {
   $templateCache.put("js/dataTransfer/transfersView.tpl.html",
@@ -65,6 +65,16 @@ angular.module("js/dataTransfer/transfersView.tpl.html", []).run(["$templateCach
     "			<hr/>\n" +
     "			<div id=\"page-selection\" class=\"pagination\"></div>\n" +
     "		</div>\n" +
+    "	</div>\n" +
+    "</div>");
+}]);
+
+angular.module("js/dt-upload/dropZone.tpl.html", []).run(["$templateCache", function($templateCache) {
+  $templateCache.put("js/dt-upload/dropZone.tpl.html",
+    "<div ng-controller=\"dropController\" id=\"dropZone\" class=\"dropZone\">\n" +
+    "	<div class=\"dropZoneContent\">\n" +
+    "		<i class=\"fa fa-file-o fa-3x\"></i><i class=\"fa fa-plus-circle\"></i><br/>\n" +
+    "		<p id=\"dropMessage\"></p>\n" +
     "	</div>\n" +
     "</div>");
 }]);

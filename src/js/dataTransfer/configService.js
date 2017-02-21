@@ -1,4 +1,4 @@
-var dt = dt || angular.module('data-transfer', ['dt-download', 'ui.bootstrap', 'templates-dataTransfer']);
+var dt = dt || angular.module('data-transfer', ['dt-download', 'dt-upload', 'ui.bootstrap', 'templates-dataTransfer']);
 
 dt.factory('configService', function () {
 	var settings; // Object that stores all settings
@@ -28,7 +28,7 @@ dt.factory('configService', function () {
 		getAutoRetriesQty: function () {
 			return settings.autoRetriesQty;
 		},
-		
+
 		/**
 		 * Function that returns the number of transfers that can run at the same time (number)
 		 * @return number of transfers that can run at the same time
@@ -36,7 +36,7 @@ dt.factory('configService', function () {
 		getConcurentTransfersQty: function () {
 			return settings.concurentTransfersQty;
 		},
-		
+
 		/**
 		 * Function that returns URL of the API upload endpoint (string)
 		 * @return URL of the API endpoint that uploads files
@@ -52,7 +52,7 @@ dt.factory('configService', function () {
 		getFilesURL: function () {
 			return settings.baseURL + settings.filesURL;
 		},
-		
+
 		/**
 		 * Function that returns the number of transfers that are displayed on the same page in the view (number)
 		 * @return number of transfers displayed at the same time
