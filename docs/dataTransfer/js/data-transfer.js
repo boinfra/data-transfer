@@ -380,7 +380,7 @@ dt.factory('configService', function () {
 	var settings; // Object that stores all settings
 	// Ajax request to settings.json file. Get settings in json format
 	$.ajax({
-		url: '/dataTransfer/settings.json',
+		url: 'dataTransfer/settings.json',
 		async: false,
 		dataType: 'json',
 		success: function (response) {
