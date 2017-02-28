@@ -1,21 +1,21 @@
-<!DOCTYPE html>
+<!DOCTYPE>
 <html>
 
 <head>
-	<title>Data transfer - Home</title>
-	<meta charset="utf-8" />
+	<title>Data transfer - Upload</title>
+	<meta charset="UTF-8" />
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
 		crossorigin="anonymous" />
 	<link rel="stylesheet" href="dataTransfer/css/data-transfer.css" />
 	<link rel="stylesheet" href="FontAwesome/css/font-awesome.css" />
 </head>
 
-<body ng-app="app">
+<body ng-app="app" ng-init="pageName='upload'">
 	<script src="js/jquery-3.1.1.min.js"></script>
 	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa"
 		crossorigin="anonymous"></script>	
 	<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.2/angular.min.js"></script>
-	<script src="js/ui-bootstrap-tpls-2.5.0.min.js"></script>
+	<script src="js/ui-bootstrap-tpls-2.5.0.min.js"></script>	
 	<script src="http://browserspy.dk/js/webkit.js"></script>
 	<script src="dataTransfer/js/data-transfer-templates.js"></script>
 	<script src="dataTransfer/js/data-transfer.js"></script>
@@ -25,20 +25,23 @@
 	<script src="js/fileSaver.min.js"></script>
 	<script src="js/filesController.js"></script>
 
+	<!-- Include of the navbar -->
 	<div ng-include="'header.html'"></div>
 
+	<!-- Body content -->
 	<div class="container body-content">
-		<h1>Data transfer</h1>
-		<ul ng-controller="filesController" class="list-group">
-			<li ng-repeat="file in files" class="list-group-item">
-				<button class="btn btn-primary btn-xs" ng-click="download(file.downloadUrl, file.name)">download</button> {{file.name}}
-			</li>
-		</ul>
+		<h1>Upload</h1>
+		<hr/>
+		<!-- drop zone -->
+		<dt-drop-zone></dt-drop-zone>
+		<br/>
+		<!-- File transferts view -->
+		<dt-transfers-view page="'upload'"></dt-transfers-view>
 	</div>
 
+	<!-- Include of the footer -->
 	<div ng-include="'footer.html'"></div>
 
-	<dt-transfers-view page="'home'"></dt-transfers-view>
 </body>
 
 </html>

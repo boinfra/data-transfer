@@ -1,0 +1,11 @@
+{
+	"autoStart": false,
+	"autoRetriesQty": 1,
+	"_comment": "Set autoRetriesQty to 0 if you don't want failed uploads to restart automatically",
+	"concurentTransfersQty": 3,
+	"baseURL": "http://datatransfer-demo.cloudno.de/api/",
+	"uploadURL": "upload",
+	"filesURL": "files",
+	"displayedTransfersQty": 5,
+	"apiErrorMessageName": "message"
+}
